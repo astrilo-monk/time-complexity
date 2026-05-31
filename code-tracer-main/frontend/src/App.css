@@ -1,0 +1,460 @@
+/* ============================================
+   Code Tracer — App Layout & Custom Styles
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Cabinet Grotesk from fontsource CDN */
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&display=swap');
+
+/* Root Layout */
+.app-root {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background-color: #09090B;
+  color: #FAFAFA;
+  overflow-x: hidden;
+}
+
+.app-header {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.6);
+  background-color: #09090B;
+}
+
+.app-grid {
+  flex: none;
+  height: calc(100vh - 40px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  min-height: 0;
+}
+
+.quadrant {
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  background-color: #09090B;
+}
+
+/* Monaco Editor active line highlight */
+.active-line-decoration {
+  background-color: rgba(251, 191, 36, 0.08) !important;
+  border-left: 3px solid #FBBF24 !important;
+  transition: background-color 0.2s ease;
+}
+
+.active-line-glyph {
+  background-color: #FBBF24;
+  width: 3px !important;
+  margin-left: 3px;
+  border-radius: 1px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
+}
+
+/* Font utilities */
+.font-cabinet {
+  font-family: 'Cabinet Grotesk', sans-serif;
+}
+
+.font-plex {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Smooth transitions for all interactive elements */
+button, a, input {
+  transition: all 0.15s ease;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #FAFAFA;
+}
+
+/* ===== Memory Block Styles ===== */
+.mem-block {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.mem-block-normal {
+  background-color: #18181B;
+  border-color: #27272A;
+}
+
+.mem-block-pointer {
+  background-color: #1a1710;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.mem-block-heap {
+  background-color: #0F1F15;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.mem-block-changed {
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.08);
+  animation: mem-flash 0.4s ease-out;
+}
+
+@keyframes mem-flash {
+  0% { background-color: rgba(251, 191, 36, 0.15); }
+  100% { background-color: transparent; }
+}
+
+.mem-block-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #93C5FD;
+}
+
+.mem-block-type {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 10px;
+  color: #52525B;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(39, 39, 42, 0.5);
+}
+
+.mem-block-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #10B981;
+  transition: color 0.2s ease;
+}
+
+.mem-value-changed {
+  color: #FBBF24 !important;
+  font-weight: 600;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE — phones & small tablets
+   ============================================ */
+
+/* ---- Tablets and below (< 768px) ---- */
+@media (max-width: 767px) {
+  /* Header: wrap controls below logo */
+  .app-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px;
+    height: auto;
+    min-height: auto;
+  }
+
+  /* Grid: single column, scrollable */
+  .app-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Each panel gets a fixed height to allow proper scrolling */
+  .quadrant {
+    min-height: 260px;
+    height: auto;
+    overflow: visible;
+    border-right: none !important;
+  }
+
+  /* Give the code editor more room */
+  .quadrant:first-child {
+    min-height: 300px;
+    height: 50vh;
+  }
+
+  /* Memory panel */
+  .quadrant:nth-child(2) {
+    min-height: 240px;
+    height: 40vh;
+  }
+
+  /* Explanation */
+  .quadrant:nth-child(3) {
+    min-height: 220px;
+    height: 40vh;
+  }
+
+  /* Timeline/Chat/Complexity */
+  .quadrant:nth-child(4) {
+    min-height: 280px;
+    height: 50vh;
+  }
+
+  /* Memory blocks: tighter padding */
+  .mem-block {
+    padding: 6px 10px;
+  }
+
+  .mem-block-name {
+    font-size: 12px;
+  }
+
+  .mem-block-value {
+    font-size: 12px;
+  }
+}
+
+/* ---- Small phones (< 480px) ---- */
+@media (max-width: 479px) {
+  .app-header {
+    padding: 5px 8px;
+    gap: 4px;
+  }
+
+  /* Code editor: more room on tiny screens */
+  .quadrant:first-child {
+    min-height: 260px;
+    height: 55vh;
+  }
+
+  /* Other panels slightly smaller */
+  .quadrant:nth-child(2) {
+    min-height: 220px;
+    height: 38vh;
+  }
+
+  .quadrant:nth-child(3) {
+    min-height: 200px;
+    height: 35vh;
+  }
+
+  .quadrant:nth-child(4) {
+    min-height: 260px;
+    height: 50vh;
+  }
+
+  .mem-block {
+    padding: 5px 8px;
+  }
+
+  .mem-block-name {
+    font-size: 11px;
+  }
+
+  .mem-block-value {
+    font-size: 11px;
+  }
+}
+
+/* ============================================
+   MOBILE EDITOR TOOLBAR — phones & tablets
+   ============================================ */
+
+/* Only show on < 1024px */
+.mobile-editor-toolbar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .mobile-editor-toolbar {
+    display: flex;
+    flex-direction: column;
+    background: rgba(12, 12, 14, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(63, 63, 70, 0.4);
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+    flex-shrink: 0;
+  }
+
+  .mobile-editor-toolbar.collapsed {
+    max-height: 28px;
+    opacity: 0.9;
+  }
+
+  /* Toggle handle */
+  .mobile-toolbar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 5px 0;
+    background: rgba(39, 39, 42, 0.3);
+    border: none;
+    border-bottom: 1px solid rgba(63, 63, 70, 0.2);
+    color: #a1a1aa;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .mobile-toolbar-toggle:active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+  }
+
+  .toggle-chevron {
+    font-size: 8px;
+    opacity: 0.6;
+  }
+
+  /* Rows container */
+  .mobile-toolbar-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Each row scrolls horizontally */
+  .mobile-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-bottom: 1px solid rgba(39, 39, 42, 0.3);
+  }
+
+  .mobile-toolbar-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-toolbar-row:last-child {
+    border-bottom: none;
+  }
+
+  /* Group labels */
+  .mobile-toolbar-group-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: #52525b;
+    padding: 0 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Divider between groups */
+  .mobile-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(63, 63, 70, 0.4);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* Individual buttons */
+  .mobile-toolbar-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 6px;
+    border: 1px solid rgba(63, 63, 70, 0.3);
+    border-radius: 6px;
+    background: rgba(24, 24, 27, 0.6);
+    color: #a1a1aa;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .mobile-toolbar-btn:active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+    transform: scale(0.95);
+  }
+
+  .mobile-toolbar-btn.btn-highlight {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+  }
+
+  .mobile-toolbar-btn.btn-danger {
+    color: #fca5a5;
+  }
+
+  .mobile-toolbar-btn.btn-danger:active {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .mobile-toolbar-btn span {
+    line-height: 1;
+  }
+}
+
+/* Tablets get slightly bigger buttons */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-toolbar-btn {
+    min-width: 52px;
+    min-height: 48px;
+    padding: 5px 8px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
+
+  .mobile-toolbar-row {
+    padding: 5px 10px;
+    gap: 4px;
+  }
+
+  .mobile-toolbar-group-label {
+    font-size: 9px;
+    padding: 0 6px;
+  }
+}
