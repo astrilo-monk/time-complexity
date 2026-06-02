@@ -1,7 +1,0 @@
-backend :- cd .\code-tracer-main\backend
-uvicorn server:app --host 0.0.0.0 --port 8000 --reload
-
-frontend :- cd .\code-tracer-main\frontend
-yarn install
-yarn start
-
