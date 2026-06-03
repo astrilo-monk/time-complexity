@@ -9,6 +9,10 @@
  *   const result = analyze(code, { language: 'python' });
  */
 
+import { ComplexityEngine } from './core/complexity-engine.js';
+import { LoopAnalyzer } from './analyzers/loop-analyzer.js';
+
+// Parser layer
 export { getParser, isLanguageSupported, getSupportedLanguages } from './parsers/parser-factory.js';
 
 // IR node types (for advanced consumers who want to inspect the IR)
@@ -27,3 +31,32 @@ export {
   ContinueNode,
   ExpressionNode,
 } from './ir/nodes.js';
+
+// IR builder utilities
+export { markRecursiveCalls, buildCallGraph, detectMutualRecursion, maxLoopDepth, collectLoops } from './ir/builder.js';
+
+// Core engine
+export { ComplexityEngine } from './core/complexity-engine.js';
+export { BigO, fromDegree, parse as parseBigO, max as maxComplexity } from './core/complexity-algebra.js';
+export { ConfidenceEngine, highConfidence, lowConfidence } from './core/confidence-engine.js';
+
+// Analyzers
+export { LoopAnalyzer } from './analyzers/loop-analyzer.js';
+
+/**
+ * Convenience function — the primary public API.
+ *
+ * Wires up the engine with all available analyzers and runs analysis.
+ *
+ * @param {string} sourceCode
+ * @param {{ language: string }} options
+ * @returns {AnalysisReport}
+ */
+export function analyze(sourceCode, options = {}) {
+  const engine = new ComplexityEngine();
+  engine.use(new LoopAnalyzer());
+  // Future: engine.use(new RecursionAnalyzer());
+  // Future: engine.use(new SpaceAnalyzer());
+  // Future: engine.use(new AlgorithmDetector());
+  return engine.analyze(sourceCode, options);
+}
