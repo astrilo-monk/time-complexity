@@ -16,16 +16,18 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 
 ## Current Status
 
-**v0.1.0** — Foundation + Parser Layer
+**v0.2.0** — Core Engine + Loop Analysis
 
 - [x] Project scaffolding and tooling
 - [x] Common IR node types
 - [x] Tree-sitter parser adapters for C, C++, Java, Python
-- [ ] Loop analyzer
+- [x] Complexity algebra (Big-O math)
+- [x] Confidence engine
+- [x] Analysis engine (pipeline orchestrator)
+- [x] Loop analyzer (O(1) through O(n⁴), log loops, while-halving)
 - [ ] Recursion analyzer
 - [ ] Space analyzer
 - [ ] Algorithm pattern detector
-- [ ] Public API (`analyze()`)
 
 ## Quick Start
 
@@ -35,50 +37,58 @@ npm install
 
 # Run tests
 npm test
+
+# Run the demo
+node demo.js
 ```
 
-### Usage (current — parser layer only)
+### Usage
 
 ```javascript
-import { getParser } from 'complexity-analyzer';
+import { analyze } from 'complexity-analyzer';
 
-const parser = getParser('python');
-const ir = parser.parse(`
+const result = analyze(`
 def bubble_sort(arr):
     n = len(arr)
     for i in range(n):
         for j in range(n - 1):
             if arr[j] > arr[j + 1]:
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
-`);
+`, { language: 'python' });
 
-// ir is a ProgramNode with the full IR tree
-console.log(ir.functions[0].name); // 'bubble_sort'
+console.log(result.functions[0].display);      // 'O(n²)'
+console.log(result.functions[0].confidence);    // { score: 1, level: 'high' }
+console.log(result.functions[0].reasoning);
+// [
+//   'for-loop: i = 0 to n, step +1 → O(n)',
+//   '  for-loop: j = 0 to n - 1, step +1 → O(n)',
+//   '  Loop (for) runs O(n) iterations with O(1) body → O(n)',
+//   'Loop (for) runs O(n) iterations, body is O(n) → total: O(n²)'
+// ]
 ```
 
-### Future API (coming in later phases)
+### What It Can Detect
 
-```javascript
-import { analyze } from 'complexity-analyzer';
-
-const result = analyze(code, { language: 'python' });
-// {
-//   timeComplexity: "O(n²)",
-//   spaceComplexity: "O(1)",
-//   confidence: 0.94,
-//   reasoning: [...],
-//   detectedPatterns: [...]
-// }
-```
+| Pattern | Example | Result |
+|---------|---------|--------|
+| No loops | `return a + b` | O(1) |
+| Single loop | `for(i=0; i<n; i++)` | O(n) |
+| Log loop | `for(i=1; i<n; i*=2)` | O(log n) |
+| While halving | `while(n>1) n=n/2` | O(log n) |
+| For-each | `for item in items` | O(n) |
+| Nested loops | `for i` → `for j` | O(n²) |
+| Triple nested | `for i` → `for j` → `for k` | O(n³) |
+| Linear × log | `for(i)` → `for(j*=2)` | O(n log n) |
+| Sequential | `O(n) then O(n²)` | O(n²) |
 
 ## Supported Languages
 
-| Language | Parser Status | Analysis Status |
-|----------|--------------|-----------------|
-| C        | ✅ Done       | 🔲 Pending      |
-| C++      | ✅ Done       | 🔲 Pending      |
-| Java     | ✅ Done       | 🔲 Pending      |
-| Python   | ✅ Done       | 🔲 Pending      |
+| Language | Parser | Loop Analysis |
+|----------|--------|---------------|
+| C        | ✅ Done | ✅ Done        |
+| C++      | ✅ Done | ✅ Done        |
+| Java     | ✅ Done | ✅ Done        |
+| Python   | ✅ Done | ✅ Done        |
 
 ## Project Structure
 
@@ -90,9 +100,15 @@ src/
 │   ├── java/
 │   └── python/
 ├── ir/               # Common intermediate representation
-├── analyzers/        # Loop, recursion, space, algorithm analyzers
-├── core/             # Engine, confidence scoring, complexity math
-└── api/              # Public API surface
+│   ├── nodes.js      # 12 IR node types
+│   └── builder.js    # Call graph, recursion detection
+├── analyzers/        # Analysis modules
+│   └── loop-analyzer.js
+├── core/             # Engine internals
+│   ├── complexity-algebra.js   # Big-O arithmetic
+│   ├── complexity-engine.js    # Pipeline orchestrator
+│   └── confidence-engine.js    # Signal-based scoring
+└── index.js          # Public API entry point
 ```
 
 ## Architecture
@@ -103,12 +119,9 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
 
 ```bash
 npm install          # Install deps
-npm test             # Run tests
-npm run test:watch   # Watch mode
-npm run lint         # Lint check
+npm test             # Run all 160 tests
+node demo.js         # See the engine in action
 ```
-
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed dev guide (coming soon).
 
 ## Design Goals
 
