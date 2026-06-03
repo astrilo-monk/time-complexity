@@ -1,129 +1,124 @@
 /**
  * Demo script — run with: node demo.js
  *
- * Shows the parser layer in action across all 4 languages.
+ * Shows the full analysis engine in action: source code → complexity estimate.
  */
 
-import { getParser } from './src/index.js';
-import { markRecursiveCalls, buildCallGraph, maxLoopDepth } from './src/ir/builder.js';
+import { analyze } from './src/index.js';
 
-// ─── Python: Bubble Sort ───────────────────────────────────
-const pythonCode = `
+function printResult(title, code, language) {
+  console.log('═══════════════════════════════════════════════════════');
+  console.log(`  ${title}`);
+  console.log('═══════════════════════════════════════════════════════');
+
+  const result = analyze(code, { language });
+
+  for (const func of result.functions) {
+    console.log(`  ${func.name}(${func.params.join(', ')})`);
+    console.log(`    Time:       ${func.display}`);
+    console.log(`    Confidence: ${func.confidence.score} (${func.confidence.level})`);
+    console.log(`    Loop depth: ${func.loopDepth}`);
+    console.log(`    Recursive:  ${func.isRecursive}`);
+    if (func.reasoning.length > 0) {
+      console.log('    Reasoning:');
+      for (const r of func.reasoning) {
+        console.log(`      ${r}`);
+      }
+    }
+  }
+
+  console.log(`  ─── Overall: ${result.overall.display}`);
+  console.log();
+}
+
+// ─── O(1): Constant ──────────────────────────────────────────
+printResult('Python — O(1) Constant', `
+def add(a, b):
+    return a + b
+`, 'python');
+
+// ─── O(n): Linear ────────────────────────────────────────────
+printResult('C — O(n) Linear Sum', `
+int sum(int n) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += i;
+    }
+    return total;
+}
+`, 'c');
+
+// ─── O(log n): Logarithmic ──────────────────────────────────
+printResult('C++ — O(log n) Binary Search Pattern', `
+int logSearch(int n) {
+    int count = 0;
+    for (int i = 1; i < n; i *= 2) {
+        count++;
+    }
+    return count;
+}
+`, 'cpp');
+
+// ─── O(n²): Bubble Sort ────────────────────────────────────
+printResult('Python — O(n²) Bubble Sort', `
 def bubble_sort(arr):
     n = len(arr)
     for i in range(n):
         for j in range(n - 1):
             if arr[j] > arr[j + 1]:
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
-`;
+`, 'python');
 
-const pyParser = getParser('python');
-const pyIR = pyParser.parse(pythonCode);
-markRecursiveCalls(pyIR);
-
-console.log('═══════════════════════════════════════');
-console.log('  PYTHON — Bubble Sort');
-console.log('═══════════════════════════════════════');
-console.log(`Functions: ${pyIR.functions.map(f => f.name).join(', ')}`);
-console.log(`Params:    ${pyIR.functions[0].params.join(', ')}`);
-
-const pyLoops = pyIR.findAll(n => n.type === 'loop');
-console.log(`Loops:     ${pyLoops.length}`);
-for (const loop of pyLoops) {
-  console.log(`  → ${loop.loopType} | iterator: ${loop.iteratorVar} | bound: ${loop.boundVar} | increment: ${loop.incrementType}`);
-}
-console.log(`Max loop depth: ${maxLoopDepth(pyIR.functions[0])}`);
-console.log();
-
-// ─── C: Factorial (Recursive) ──────────────────────────────
-const cCode = `
-int factorial(int n) {
-    if (n <= 1) return 1;
-    return n * factorial(n - 1);
-}
-`;
-
-const cParser = getParser('c');
-const cIR = cParser.parse(cCode);
-markRecursiveCalls(cIR);
-
-console.log('═══════════════════════════════════════');
-console.log('  C — Recursive Factorial');
-console.log('═══════════════════════════════════════');
-const cFunc = cIR.functions[0];
-console.log(`Function:    ${cFunc.name}(${cFunc.params.join(', ')})`);
-console.log(`Return type: ${cFunc.returnType}`);
-console.log(`Recursive:   ${cFunc.isRecursive}`);
-console.log(`Recursive calls: ${cFunc.recursiveCalls.length}`);
-
-const cCalls = cIR.findAll(n => n.type === 'call');
-console.log(`All calls: ${cCalls.map(c => `${c.functionName}(${c.arguments.join(', ')})`).join(', ')}`);
-console.log();
-
-// ─── C++: Logarithmic Loop ─────────────────────────────────
-const cppCode = `
-void search(int n) {
-    vector<int> data;
-    for (int i = 1; i < n; i *= 2) {
-        data.push_back(i);
+// ─── O(n log n): Linearithmic ───────────────────────────────
+printResult('C — O(n log n) Linear × Log', `
+void nlogn(int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 1; j < n; j *= 2) {
+            printf("%d %d", i, j);
+        }
     }
 }
-`;
+`, 'c');
 
-const cppParser = getParser('cpp');
-const cppIR = cppParser.parse(cppCode);
-
-console.log('═══════════════════════════════════════');
-console.log('  C++ — Logarithmic Loop');
-console.log('═══════════════════════════════════════');
-const cppLoop = cppIR.findFirst(n => n.type === 'loop');
-console.log(`Loop type:       ${cppLoop.loopType}`);
-console.log(`Iterator:        ${cppLoop.iteratorVar}`);
-console.log(`Init value:      ${cppLoop.initValue}`);
-console.log(`Bound:           ${cppLoop.boundVar}`);
-console.log(`Increment type:  ${cppLoop.incrementType}`);
-console.log(`Increment value: ${cppLoop.incrementValue}`);
-
-const cppAllocs = cppIR.findAll(n => n.type === 'allocation');
-console.log(`Allocations: ${cppAllocs.map(a => a.dataStructure).join(', ')}`);
-console.log();
-
-// ─── Java: Nested Loops ────────────────────────────────────
-const javaCode = `
+// ─── O(n³): Matrix Multiplication ──────────────────────────
+printResult('Java — O(n³) Matrix Multiply', `
 public class Matrix {
-    void multiply(int[][] a, int[][] b, int n) {
-        int[][] result = new int[n][n];
+    void multiply(int n) {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 for (int k = 0; k < n; k++) {
-                    result[i][j] += a[i][k] * b[k][j];
+                    System.out.println(i + j + k);
                 }
             }
         }
     }
 }
-`;
+`, 'java');
 
-const javaParser = getParser('java');
-const javaIR = javaParser.parse(javaCode);
-
-console.log('═══════════════════════════════════════');
-console.log('  JAVA — Matrix Multiplication');
-console.log('═══════════════════════════════════════');
-const javaFunc = javaIR.functions[0];
-console.log(`Method:         ${javaFunc.name}(${javaFunc.params.join(', ')})`);
-
-const javaLoops = javaIR.findAll(n => n.type === 'loop');
-console.log(`Loops:          ${javaLoops.length}`);
-for (const loop of javaLoops) {
-  console.log(`  → ${loop.loopType} | ${loop.iteratorVar} = ${loop.initValue} to ${loop.boundVar} | ${loop.incrementType} +${loop.incrementValue}`);
+// ─── O(log n): While with halving ──────────────────────────
+printResult('C — O(log n) While Halving', `
+int halve(int n) {
+    while (n > 1) {
+        n = n / 2;
+    }
+    return n;
 }
-console.log(`Max loop depth: ${maxLoopDepth(javaFunc)}`);
+`, 'c');
 
-const javaAllocs = javaIR.findAll(n => n.type === 'allocation');
-console.log(`Allocations:    ${javaAllocs.map(a => `${a.dataStructure} (${a.allocationType})`).join(', ')}`);
-console.log();
+// ─── Mixed: sequential loops ────────────────────────────────
+printResult('C — Sequential O(n) + O(n²) = O(n²)', `
+void mixed(int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d", i);
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d", j);
+        }
+    }
+}
+`, 'c');
 
-console.log('═══════════════════════════════════════');
-console.log('  ✅ All parsers working!');
-console.log('═══════════════════════════════════════');
+console.log('═══════════════════════════════════════════════════════');
+console.log('  ✅ Analysis engine working!');
+console.log('═══════════════════════════════════════════════════════');
