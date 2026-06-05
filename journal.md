@@ -1,0 +1,119 @@
+# dev journal
+
+not really a formal doc, just writing down what i did each day so i don't forget stuff when i come back to this after a break.
+
+---
+
+## june 2, 2026
+
+started the complexity analyzer project today. been wanting to build this for a while — the idea is basically a static analysis engine that can look at code and tell you the time complexity. not just some regex that matches `for` loops and says "O(n)" either, i want it to actually walk the AST and reason about it properly.
+
+spent most of the day on the foundation:
+
+- set up the project from scratch — esm modules, vitest for testing, tree-sitter for parsing
+- designed the IR (intermediate representation). this took longer than expected. i had to figure out what node types i actually need. ended up with 12: ProgramNode, FunctionNode, LoopNode, BlockNode, BranchNode, CallNode, VariableNode, AllocationNode, ReturnNode, BreakNode, ContinueNode, ExpressionNode. might need more later but this covers everything i can think of rn
+- wrote the base parser class. all 4 language parsers inherit from this. the main thing it does is `analyzeForLoopStructure()` — figures out if a loop is additive (i++), multiplicative (i*=2), or divisive (n/=2). this is critical because that's how you distinguish O(n) from O(log n)
+- built parsers for python, c, c++, and java. each one walks the tree-sitter CST and converts it to my common IR
+
+the python parser was the trickiest because `for i in range(n)` is technically a for-each loop but range(n) makes it a counted loop. had to detect range() calls and extract start/stop/step.
+
+hit a nasty bug with embedded function calls. if you have `return n * factorial(n-1)`, the factorial call is buried inside a binary expression. the parser was only looking at direct children of the return statement. had to add `extractCallsFromExpression()` that recursively walks expression subtrees to find calls. had to add this to all 4 parsers.
+
+also the c++ STL matching was wrong — `unordered_map` was matching as `map` because i used a Set and checked with `.includes()`. the iteration order meant `map` got checked first. fixed it by switching to a sorted array, longest names first.
+
+ended the day with 95 tests passing. felt good.
+
+## june 3, 2026
+
+today was the big one — built the actual analysis engine.
+
+phase 3 — core engine:
+- `BigO` class — this is the math backbone. you can multiply complexities (for nested loops: O(n) × O(n) = O(n²)) and add them (for sequential code: O(n) + O(n²) = O(n²), dominant term wins). has a lookup table for multiplication results. also wrote a parser that handles formats like "O(n²)", "n^2", "O(n log n)" etc
+- confidence engine — every analysis now gets a confidence score from 0 to 1. it works on signals: positive signals like "bounds are statically known" or "simple increment pattern" push the score up, negative signals like "has break statement" or "unknown bounds" push it down. each signal has a weight. i really like how this turned out, it makes the output feel honest instead of just guessing
+- complexity engine — the orchestrator. takes source code, runs it through the parser, enriches the IR (marks recursive calls, builds call graph), then runs all registered analyzers and merges their results into one report
+
+phase 4 — loop analyzer:
+- this is where the actual complexity estimation happens. walks the IR tree and classifies each loop:
+  - additive increment → O(n)
+  - multiplicative increment → O(log n)  
+  - for-each → O(n)
+  - while with halving pattern (n = n/2) → O(log n)
+  - while with decrement → O(n)
+  - sqrt pattern (i*i <= n) → O(√n)
+- nested loops get multiplied, sequential loops get added (dominant term)
+- every analysis produces step-by-step reasoning. like for matrix multiplication it says "for-loop i=0 to n → O(n), inner for-loop j=0 to n → O(n), body is O(n) → total O(n²), outer loop O(n) × O(n²) = O(n³)". feels like how a TA would explain it
+
+biggest bug today: bubble sort was returning O(1). turns out i forgot to implement `analyzeBranch()`. the loop analyzer had a switch case that called `this.analyzeBranch()` for if statements but the method didn't exist. since the engine wraps analyzer calls in try/catch, it silently failed and returned the error result. took me a bit to track down because the tests for simple nested loops (without if statements inside) all passed fine.
+
+all 160 tests passing now across 10 test files. the demo script shows everything working end to end:
+- python bubble sort → O(n²) ✓
+- c++ log loop → O(log n) ✓
+- java matrix multiply → O(n³) ✓
+- while halving → O(log n) ✓
+- sequential O(n) + O(n²) → O(n²) ✓
+
+still need to build: recursion analyzer (for things like merge sort, fibonacci), space analyzer, algorithm pattern detector. but the hardest part is done honestly — the loop analyzer is the backbone of everything.
+
+pushed everything to github. 4 out of 8 phases done.
+
+## june 5, 2026
+
+took a day off yesterday. came back today and knocked out phase 5 — the recursion analyzer.
+
+this was actually cleaner to build than i expected. the hardest part was already done in phase 1: the IR builder already marks recursive calls and builds the call graph. so the recursion analyzer just needs to look at functions that have `isRecursive = true` and figure out what kind of recursion it is.
+
+the approach:
+
+1. count the recursive calls. 1 call = linear or divide. 2 calls = binary (fibonacci) or divide-and-conquer (merge sort). 3+ = exponential.
+2. look at the arguments to figure out how the problem size shrinks. `f(n-1)` = subtractive. `f(n/2)` = halving. this is the key distinction — subtractive + 2 calls = O(2^n), halving + 2 calls = O(n log n).
+3. detect tail recursion — if the recursive call is the last thing in the function (the return value IS the call), it's equivalent to a loop.
+4. estimate the work done per call by checking for loops in the function body. a recursive function with an O(n) loop inside is doing more work per frame.
+5. for halving recursion, apply the master theorem: T(n) = a·T(n/b) + O(n^d). there are 3 cases depending on how a compares to b^d.
+
+patterns i can detect now:
+- factorial: f(n-1) with O(1) work → O(n) 
+- fibonacci: f(n-1) + f(n-2) → O(2^n) 
+- binary search: f(n/2) single call → O(log n) 
+- merge sort: 2×f(n/2) + O(n) merge → O(n log n)
+- selection sort style: f(n-1) + O(n) loop → O(n²) 
+- tail recursion: return f(n-1, acc) → O(n) 
+
+the master theorem part was fun to implement. it's just 3 cases but it covers a surprisingly large chunk of CS textbook algorithms. had to be careful with floating point comparison for the "balanced" case (a = b^d) — used a tolerance of 0.01.
+
+one thing i'm proud of: the reasoning output reads like a TA explaining it. for merge sort it says:
+```
+Function "merge_sort" is recursive.
+Found 2 recursive call(s).
+Base case detected.
+Pattern: divide-and-conquer — 2 calls with n / 2.
+Work per call: O(n) — loop found in the function body.
+Master Theorem: T(n) = 2·T(n/2) + O(n)
+  a=2, b=2, d=1, log_b(a)=1.00
+  Case 2 (a = b^d): balanced → O(n log n).
+```
+
+all 175 tests passing across 11 test files. 15 new tests for recursion patterns.
+
+5 out of 8 phases done. next up is space complexity analysis — that should be simpler since i already have AllocationNode in the IR for tracking memory allocations. might start phase 6 today night or tomorrow but will HAVE to stop due to exams
+
+Phase 6 - Space Analyzer
+building the space analyzer was conceptually simpler than time complexity, but required a few clever tricks. i realized early on that there are really only two sources of space usage we need to track:
+1. **explicit allocations** - things like `malloc`, `new`, collections (`ArrayList`, `vector`), and arrays. the groundwork for this was already laid out in phase 1. the parsers were already emitting `AllocationNode`s with `sizeExpression` and `dataStructure` fields. i just needed to classify them.
+2. **recursion stack depth** - every time a recursive call is made, it pushes a frame onto the call stack. so time complexity's recursion depth directly impacts space complexity. a linear recursion like `f(n-1)` takes O(n) stack space, while a halving recursion like `f(n/2)` takes O(log n) stack space.
+the tricky part was parsing the size expressions for explicit allocations, especially in C/C++. for example, when someone writes `malloc(n * sizeof(int))`, my first naive version saw the `*` and classified it as O(n²), thinking `n * m` is quadratic. 
+to fix this, i wrote an `extractSizeVariable()` method. its job is to strip away all the common wrappers (`malloc`, `calloc`, `sizeof`, `new`, cast operators) and extract just the core variable name. 
+- `malloc(n * sizeof(int))` -> extracts `n` -> classifies as O(n). 
+- only when two actual variables are multiplied, like `n * m` or `rows * cols`, does it count as O(n²).
+another important piece was **loop amplification**. if you allocate memory *inside* a loop, the cumulative space grows. i used the existing loop depth tracking: a constant allocation O(1) inside a single loop becomes O(n) space. inside two nested loops, it becomes O(n²) space.
+finally, i had to integrate this back into the main engine. i updated `complexity-engine.js` so it now calculates and merges space complexity alongside time. the final `AnalysisReport` now includes `spaceDisplay`, `spaceReasoning`, and `spaceConfidence` per function, giving a complete picture of the algorithm's performance.
+added 14 new tests just for space patterns (testing arrays, heap allocations, loop amplification, and recursive stack limits), bringing the total to 189 passing tests.
+
+after that i made a `demo-hard.js` file with 5 of the nastiest complexity patterns i could think of. wanted to stress test the analyzer and see where it breaks.
+1. **dependent inner loop** - `for j < i` instead of `for j < n`. the total is the triangle sum 0+1+2+...+(n-1) = O(n^2). analyzer got it right because it treats the bound `i` as O(n) in the worst case.
+2. **harmonic series** - inner loop runs `n/i` times. real answer is O(n log n) but we report O(n^2). can't detect harmonic sums yet, would need symbolic math for that. acceptable over-estimate for now.
+3. **tower of hanoi** - two recursive calls both with n-1. got it right: O(2^n). also fixed the reasoning to say `2*T(n-1)` instead of `T(n-1) + T(n-2)` since both calls reduce by the same amount.
+4. **fast exponentiation** - this one broke things initially. the function does `power(n/2)` in one branch and `power(n-1)` in another. two bugs:
+   - the C parser wasn't finding `power(base, n/2)` because it was inside `int half = power(...)`. the parser created a VariableNode but threw away the call. fixed it to emit the CallNode as a child of the VariableNode.
+   - the recursion analyzer saw 2 calls and classified it as binary recursion (O(2^n)). but the calls are in exclusive if/else branches - only one runs per invocation. added `analyzeReductionPerCall()` which checks each call's reduction pattern separately. if they differ (halving vs subtractive), it knows they're in different branches and treats it as a single call with the dominant (halving) reduction. result: O(log n). correct.
+5. **subset generation** - backtracking with two sequential recursive calls. got it right: O(2^n).
+final score: 5/5 PASS. pretty happy with that. the exclusive branch detection was a nice addition to the analyzer - it handles a whole class of divide-and-conquer algorithms that have a "fast path" and a "fallback path".
