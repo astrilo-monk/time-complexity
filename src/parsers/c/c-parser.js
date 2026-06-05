@@ -395,6 +395,19 @@ export class CParser extends BaseParser {
             alloc.sizeExpression = this.getNodeText(valueNode);
             return alloc;
           }
+
+          // Non-malloc call in initializer (e.g. int half = power(base, n/2))
+          // Emit both the variable and the call so recursive call detection works
+          const name = nameNode ? this.getNodeText(nameNode) : '<unknown>';
+          const varNode = new VariableNode(name, 'declaration', this.loc(tsNode));
+          varNode.varType = typeName;
+          varNode.initialValue = this.getNodeText(valueNode);
+
+          const callNode = this.processCallExpression(valueNode);
+          if (callNode) {
+            varNode.addChild(callNode);
+          }
+          return varNode;
         }
       }
 

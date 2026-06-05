@@ -204,13 +204,36 @@ export class RecursionAnalyzer {
 
     // ── Two recursive calls ───────────────────────────────
     if (callCount === 2) {
+      // Check if calls are in mutually exclusive branches.
+      // If each call uses a different reduction pattern (e.g. n/2 vs n-1),
+      // they are in separate if/else branches and only one runs per invocation.
+      const perCallReductions = this.analyzeReductionPerCall(func, recursiveCalls);
+      if (perCallReductions.length === 2 &&
+          perCallReductions[0].type && perCallReductions[1].type &&
+          perCallReductions[0].type !== perCallReductions[1].type) {
+        // Mutually exclusive branches - effective call count = 1
+        // Use the dominant (faster-reducing) pattern
+        const dominant = perCallReductions.find(r => r.type === 'halving') || perCallReductions[0];
+        reasoning.push(
+          `Pattern: branched recursion - 2 calls in exclusive branches ` +
+          `(${perCallReductions.map(r => r.type).join(' vs ')}), only 1 runs per invocation.`
+        );
+        reasoning.push(`Dominant reduction: n / ${dominant.value} per call.`);
+        confidence.addSignal('known_pattern', 'Recognized exclusive-branch recursion');
+
+        if (dominant.type === 'halving') {
+          return { type: 'divide', reductionType: 'halving', reductionValue: dominant.value, callCount: 1 };
+        }
+        return { type: 'linear', reductionType: 'subtractive', reductionValue: dominant.value };
+      }
+
       if (reductions.type === 'halving') {
         reasoning.push(`Pattern: divide-and-conquer - 2 calls with n / ${reductions.value}.`);
         confidence.addSignal('known_pattern', 'Recognized divide-and-conquer (merge sort style)');
         return { type: 'divide', reductionType: 'halving', reductionValue: reductions.value, callCount: 2 };
       }
 
-      reasoning.push('Pattern: binary recursion - 2 calls with subtractive reduction (Fibonacci-style).');
+      reasoning.push('Pattern: binary recursion - 2 calls with subtractive reduction.');
       confidence.addSignal('known_pattern', 'Recognized binary tree recursion');
       confidence.addSignal('multiple_recursive_calls', 'Two recursive calls per invocation');
       return { type: 'binary', reductionType: 'subtractive', reductionValue: reductions.value || 1 };
@@ -275,6 +298,47 @@ export class RecursionAnalyzer {
     }
 
     return { type: null, value: null };
+  }
+
+  /**
+   * Analyze reduction pattern for EACH call individually.
+   * Used to detect exclusive branches (e.g. fast exponentiation:
+   * one branch does n/2, the other does n-1).
+   *
+   * @param {FunctionNode} func
+   * @param {CallNode[]} recursiveCalls
+   * @returns {{ type: string, value: number }[]}
+   */
+  analyzeReductionPerCall(func, recursiveCalls) {
+    return recursiveCalls.map(call => {
+      if (!call.arguments || call.arguments.length === 0) {
+        return { type: null, value: null };
+      }
+
+      for (const arg of call.arguments) {
+        const text = String(arg).trim();
+
+        if (/\w+\s*\/\/?=?\s*2/.test(text)) {
+          return { type: 'halving', value: 2 };
+        }
+        const divMatch = text.match(/\w+\s*\/\/?=?\s*(\d+)/);
+        if (divMatch && parseInt(divMatch[1]) > 1) {
+          return { type: 'halving', value: parseInt(divMatch[1]) };
+        }
+        if (/\w+\s*-\s*1\b/.test(text)) {
+          return { type: 'subtractive', value: 1 };
+        }
+        const subMatch = text.match(/\w+\s*-\s*(\d+)/);
+        if (subMatch) {
+          return { type: 'subtractive', value: parseInt(subMatch[1]) };
+        }
+        if (/^(mid|left|right|lo|hi|low|high)$/i.test(text)) {
+          return { type: 'halving', value: 2 };
+        }
+      }
+
+      return { type: null, value: null };
+    });
   }
 
   /**
@@ -380,9 +444,9 @@ export class RecursionAnalyzer {
       }
 
       if (type === 'binary' || callCount === 2) {
-        // T(n) = T(n-1) + T(n-2) + O(work) → O(2^n) (exponential)
+        // T(n) = 2*T(n-1) + O(work) -> O(2^n) (exponential)
         reasoning.push(
-          `Binary recursion: T(n) = T(n-1) + T(n-2) + ${workPerCall.toString()} → O(2ⁿ).`
+          `Binary recursion: T(n) = 2*T(n-${reductionValue}) + ${workPerCall.toString()} -> O(2^n).`
         );
         return BigO.EXP();
       }
