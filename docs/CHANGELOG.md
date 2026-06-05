@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-06-05
+
+### Added
+
+- Recursion Analyzer — time complexity estimation from recursive structures
+  - Linear recursion: f(n-1) with O(1) work → O(n)
+  - Linear recursion with loops: f(n-1) with O(n) work → O(n²)
+  - Binary recursion: f(n-1) + f(n-2) → O(2ⁿ) (Fibonacci-style)
+  - Halving recursion: f(n/2) → O(log n) (binary search)
+  - Divide-and-conquer: 2×f(n/2) + O(n) merge → O(n log n) (merge sort)
+  - Tail recursion detection → O(n)
+  - Simplified Master Theorem (T(n) = a·T(n/b) + O(n^d))
+  - Base case detection
+  - Problem-size reduction pattern analysis (n-1, n/2, n//2)
+  - Step-by-step reasoning for all recursion types
+- RecursionAnalyzer registered in the analysis pipeline
+- 15 new tests for recursion patterns
+- Updated demo with recursion examples (factorial, fibonacci, binary search, merge sort)
+
 ## [0.2.0] - 2026-06-03
 
 ### Added

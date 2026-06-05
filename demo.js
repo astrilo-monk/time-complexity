@@ -37,7 +37,7 @@ def add(a, b):
     return a + b
 `, 'python');
 
-// ─── O(n): Linear ────────────────────────────────────────────
+// ─── O(n): Linear Loop ──────────────────────────────────────
 printResult('C — O(n) Linear Sum', `
 int sum(int n) {
     int total = 0;
@@ -48,7 +48,7 @@ int sum(int n) {
 }
 `, 'c');
 
-// ─── O(log n): Logarithmic ──────────────────────────────────
+// ─── O(log n): Multiplicative Loop ──────────────────────────
 printResult('C++ — O(log n) Binary Search Pattern', `
 int logSearch(int n) {
     int count = 0;
@@ -95,30 +95,54 @@ public class Matrix {
 }
 `, 'java');
 
-// ─── O(log n): While with halving ──────────────────────────
-printResult('C — O(log n) While Halving', `
-int halve(int n) {
-    while (n > 1) {
-        n = n / 2;
-    }
-    return n;
+// ─── O(n): Factorial (Linear Recursion) ─────────────────────
+printResult('C — O(n) Factorial (Recursion)', `
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
 }
 `, 'c');
 
-// ─── Mixed: sequential loops ────────────────────────────────
-printResult('C — Sequential O(n) + O(n²) = O(n²)', `
-void mixed(int n) {
+// ─── O(2ⁿ): Fibonacci (Binary Recursion) ───────────────────
+printResult('Python — O(2ⁿ) Fibonacci (Binary Recursion)', `
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+`, 'python');
+
+// ─── O(log n): Binary Search (Halving Recursion) ────────────
+printResult('C — O(log n) Binary Search (Recursion)', `
+int bsearch(int arr[], int n, int target) {
+    if (n <= 0) return -1;
+    if (arr[n/2] == target) return n/2;
+    return bsearch(arr, n / 2, target);
+}
+`, 'c');
+
+// ─── O(n log n): Merge Sort ─────────────────────────────────
+printResult('C — O(n log n) Merge Sort', `
+void merge_sort(int arr[], int n) {
+    if (n <= 1) return;
+    merge_sort(arr, n / 2);
+    merge_sort(arr + n/2, n / 2);
+    for (int i = 0; i < n; i++) {
+        arr[i] = arr[i];
+    }
+}
+`, 'c');
+
+// ─── O(n²): Recursion + Loop ────────────────────────────────
+printResult('C — O(n²) Recursion with O(n) Loop', `
+void process(int n) {
+    if (n <= 0) return;
     for (int i = 0; i < n; i++) {
         printf("%d", i);
     }
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            printf("%d", j);
-        }
-    }
+    process(n - 1);
 }
 `, 'c');
 
 console.log('═══════════════════════════════════════════════════════');
-console.log('  ✅ Analysis engine working!');
+console.log('  ✅ Analysis engine working — loops + recursion!');
 console.log('═══════════════════════════════════════════════════════');

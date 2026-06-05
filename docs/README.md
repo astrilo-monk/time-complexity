@@ -16,7 +16,7 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 
 ## Current Status
 
-**v0.2.0** — Core Engine + Loop Analysis
+**v0.3.0** — Loop + Recursion Analysis
 
 - [x] Project scaffolding and tooling
 - [x] Common IR node types
@@ -25,7 +25,7 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 - [x] Confidence engine
 - [x] Analysis engine (pipeline orchestrator)
 - [x] Loop analyzer (O(1) through O(n⁴), log loops, while-halving)
-- [ ] Recursion analyzer
+- [x] Recursion analyzer (linear, binary, halving, divide-and-conquer, tail)
 - [ ] Space analyzer
 - [ ] Algorithm pattern detector
 
@@ -80,15 +80,21 @@ console.log(result.functions[0].reasoning);
 | Triple nested | `for i` → `for j` → `for k` | O(n³) |
 | Linear × log | `for(i)` → `for(j*=2)` | O(n log n) |
 | Sequential | `O(n) then O(n²)` | O(n²) |
+| Factorial | `f(n-1)` with O(1) work | O(n) |
+| Fibonacci | `f(n-1) + f(n-2)` | O(2ⁿ) |
+| Binary search | `f(n/2)` single call | O(log n) |
+| Merge sort | `2×f(n/2)` + O(n) merge | O(n log n) |
+| Recursion + loop | `f(n-1)` with O(n) loop | O(n²) |
+| Tail recursion | `return f(n-1, acc)` | O(n) |
 
 ## Supported Languages
 
-| Language | Parser | Loop Analysis |
-|----------|--------|---------------|
-| C        | ✅ Done | ✅ Done        |
-| C++      | ✅ Done | ✅ Done        |
-| Java     | ✅ Done | ✅ Done        |
-| Python   | ✅ Done | ✅ Done        |
+| Language | Parser | Loop Analysis | Recursion Analysis |
+|----------|--------|---------------|--------------------|
+| C        | ✅ Done | ✅ Done        | ✅ Done             |
+| C++      | ✅ Done | ✅ Done        | ✅ Done             |
+| Java     | ✅ Done | ✅ Done        | ✅ Done             |
+| Python   | ✅ Done | ✅ Done        | ✅ Done             |
 
 ## Project Structure
 
@@ -103,7 +109,8 @@ src/
 │   ├── nodes.js      # 12 IR node types
 │   └── builder.js    # Call graph, recursion detection
 ├── analyzers/        # Analysis modules
-│   └── loop-analyzer.js
+│   ├── loop-analyzer.js
+│   └── recursion-analyzer.js
 ├── core/             # Engine internals
 │   ├── complexity-algebra.js   # Big-O arithmetic
 │   ├── complexity-engine.js    # Pipeline orchestrator
