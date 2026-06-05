@@ -16,18 +16,25 @@ function printResult(title, code, language) {
   for (const func of result.functions) {
     console.log(`  ${func.name}(${func.params.join(', ')})`);
     console.log(`    Time:       ${func.display}`);
+    console.log(`    Space:      ${func.spaceDisplay}`);
     console.log(`    Confidence: ${func.confidence.score} (${func.confidence.level})`);
     console.log(`    Loop depth: ${func.loopDepth}`);
     console.log(`    Recursive:  ${func.isRecursive}`);
     if (func.reasoning.length > 0) {
-      console.log('    Reasoning:');
+      console.log('    Time reasoning:');
       for (const r of func.reasoning) {
+        console.log(`      ${r}`);
+      }
+    }
+    if (func.spaceReasoning && func.spaceReasoning.length > 0) {
+      console.log('    Space reasoning:');
+      for (const r of func.spaceReasoning) {
         console.log(`      ${r}`);
       }
     }
   }
 
-  console.log(`  ─── Overall: ${result.overall.display}`);
+  console.log(`  --- Overall: Time ${result.overall.display}, Space ${result.overall.spaceDisplay}`);
   console.log();
 }
 
@@ -143,6 +150,16 @@ void process(int n) {
 }
 `, 'c');
 
-console.log('═══════════════════════════════════════════════════════');
-console.log('  ✅ Analysis engine working - loops + recursion!');
-console.log('═══════════════════════════════════════════════════════');
+// --- O(n) time, O(n) space: malloc ----------------------------
+printResult('C - O(n) time, O(n) space - Array Allocation', `
+void fill(int n) {
+    int* arr = malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        arr[i] = i;
+    }
+}
+`, 'c');
+
+console.log('===============================================');
+console.log('  Done! Loops + recursion + space analysis.');
+console.log('===============================================');

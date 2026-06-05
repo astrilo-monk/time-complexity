@@ -16,7 +16,7 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 
 ## Current Status
 
-**v0.3.0** - Loop + Recursion Analysis
+**v0.4.0** - Loop + Recursion + Space Analysis
 
 - [x] Project scaffolding and tooling
 - [x] Common IR node types
@@ -26,7 +26,7 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 - [x] Analysis engine (pipeline orchestrator)
 - [x] Loop analyzer (O(1) through O(n⁴), log loops, while-halving)
 - [x] Recursion analyzer (linear, binary, halving, divide-and-conquer, tail)
-- [ ] Space analyzer
+- [x] Space analyzer (allocations, recursion stack depth, loop amplification)
 - [ ] Algorithm pattern detector
 
 ## Quick Start
@@ -89,12 +89,12 @@ console.log(result.functions[0].reasoning);
 
 ## Supported Languages
 
-| Language | Parser | Loop Analysis | Recursion Analysis |
-|----------|--------|---------------|--------------------|
-| C        | ✅ Done | ✅ Done        | ✅ Done             |
-| C++      | ✅ Done | ✅ Done        | ✅ Done             |
-| Java     | ✅ Done | ✅ Done        | ✅ Done             |
-| Python   | ✅ Done | ✅ Done        | ✅ Done             |
+| Language | Parser | Loop Analysis | Recursion Analysis | Space Analysis |
+|----------|--------|---------------|--------------------|-----------------|
+| C        | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
+| C++      | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
+| Java     | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
+| Python   | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
 
 ## Project Structure
 
@@ -110,7 +110,8 @@ src/
 │   └── builder.js    # Call graph, recursion detection
 ├── analyzers/        # Analysis modules
 │   ├── loop-analyzer.js
-│   └── recursion-analyzer.js
+│   ├── recursion-analyzer.js
+│   └── space-analyzer.js
 ├── core/             # Engine internals
 │   ├── complexity-algebra.js   # Big-O arithmetic
 │   ├── complexity-engine.js    # Pipeline orchestrator

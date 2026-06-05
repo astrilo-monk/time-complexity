@@ -4,7 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.3.0] - 2026-06-05
+## [0.4.0] - 05/06/2026
+
+### Added
+
+- Space Analyzer - memory usage estimation from IR structures
+  - Allocation-based: detects malloc/calloc, new[], collections with size expressions
+  - Size extraction: strips malloc(n * sizeof(int)) down to the variable 'n'
+  - Quadratic detection: n*m or rows*cols allocations -> O(n^2)
+  - Loop amplification: constant allocation inside loops -> O(n) cumulative
+  - Recursion stack depth: linear (n-1) -> O(n), halving (n/2) -> O(log n)
+  - Step-by-step space reasoning output
+  - Space confidence scoring
+- Engine now reports both time and space complexity per function and overall
+- 14 new tests for space patterns
+- Updated demo with space complexity output and malloc example
+
+## [0.3.0] - 05/06/2026
 
 ### Added
 
@@ -23,7 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 15 new tests for recursion patterns
 - Updated demo with recursion examples (factorial, fibonacci, binary search, merge sort)
 
-## [0.2.0] - 2026-06-03
+## [0.2.0] - 03/06/2026
 
 ### Added
 
@@ -45,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 65 new tests (complexity algebra: 30, confidence engine: 11, loop analyzer: 24)
 - Updated demo script showing full analysis pipeline output
 
-## [0.1.0] - 2026-06-02
+## [0.1.0] - 02/06/2026
 
 ### Added
 
