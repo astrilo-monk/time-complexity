@@ -69,16 +69,16 @@ The IR also includes an `builder.js` module with post-parse utilities:
 - Mutual recursion detection via cycle finding
 - Loop depth counting
 
-### Analysis Pipeline (`src/analyzers/`) - *Coming in later phases*
+### Analysis Pipeline (`src/analyzers/`)
 
 Each analyzer is independent and works against the IR:
 
-- **Loop Analyzer** - Estimates loop complexity from loop metadata (O(1) through O(n³))
-- **Recursion Analyzer** - Extracts recurrence relations, applies Master Theorem
-- **Space Analyzer** - Estimates memory usage from allocations and recursion depth
-- **Algorithm Detector** - Heuristic pattern matching for known algorithms
+- **Loop Analyzer** - Estimates loop complexity from loop metadata (O(1) through O(n^4))
+- **Recursion Analyzer** - Extracts recurrence relations, applies Master Theorem, detects exclusive branch recursion
+- **Space Analyzer** - Estimates memory usage from allocations and recursion stack depth
+- **Algorithm Detector** - Heuristic pattern matching for known algorithms (planned)
 
-### Core Engine (`src/core/`) - *Coming in later phases*
+### Core Engine (`src/core/`)
 
 - **Complexity Engine** - Orchestrates analyzers and combines their results
 - **Complexity Algebra** - Big-O math (multiply, add, simplify, compare)

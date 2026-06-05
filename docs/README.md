@@ -76,16 +76,19 @@ console.log(result.functions[0].reasoning);
 | Log loop | `for(i=1; i<n; i*=2)` | O(log n) |
 | While halving | `while(n>1) n=n/2` | O(log n) |
 | For-each | `for item in items` | O(n) |
-| Nested loops | `for i` → `for j` | O(n²) |
-| Triple nested | `for i` → `for j` → `for k` | O(n³) |
-| Linear �- log | `for(i)` → `for(j*=2)` | O(n log n) |
-| Sequential | `O(n) then O(n²)` | O(n²) |
+| Nested loops | `for i` -> `for j` | O(n^2) |
+| Triple nested | `for i` -> `for j` -> `for k` | O(n^3) |
+| Linear x log | `for(i)` -> `for(j*=2)` | O(n log n) |
+| Sequential | `O(n) then O(n^2)` | O(n^2) |
 | Factorial | `f(n-1)` with O(1) work | O(n) |
-| Fibonacci | `f(n-1) + f(n-2)` | O(2ⁿ) |
+| Fibonacci | `f(n-1) + f(n-2)` | O(2^n) |
 | Binary search | `f(n/2)` single call | O(log n) |
-| Merge sort | `2�-f(n/2)` + O(n) merge | O(n log n) |
-| Recursion + loop | `f(n-1)` with O(n) loop | O(n²) |
+| Merge sort | `2x f(n/2)` + O(n) merge | O(n log n) |
+| Recursion + loop | `f(n-1)` with O(n) loop | O(n^2) |
 | Tail recursion | `return f(n-1, acc)` | O(n) |
+| Fast exponentiation | `f(n/2)` or `f(n-1)` in branches | O(log n) |
+| Tower of Hanoi | `f(n-1)` called twice | O(2^n) |
+| Subset generation | 2 sequential `f(n-1)` calls | O(2^n) |
 
 ## Supported Languages
 

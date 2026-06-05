@@ -17,8 +17,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Step-by-step space reasoning output
   - Space confidence scoring
 - Engine now reports both time and space complexity per function and overall
+- Exclusive branch recursion detection - when two recursive calls use different
+  reduction patterns (e.g. n/2 vs n-1), the analyzer recognizes they are in
+  mutually exclusive if/else branches and only one runs per invocation
+- demo-hard.js with 5 hardest complexity patterns (dependent loops, harmonic
+  series, Tower of Hanoi, fast exponentiation, subset generation)
 - 14 new tests for space patterns
 - Updated demo with space complexity output and malloc example
+
+### Fixed
+
+- C parser now extracts function calls from variable initializers
+  (e.g. `int half = power(base, n/2)` was losing the CallNode)
+- Recursion reasoning for binary recursion now says `2*T(n-1)` instead of
+  `T(n-1) + T(n-2)` when both calls use the same reduction
+- Fast exponentiation correctly reports O(log n) instead of O(n)
 
 ## [0.3.0] - 05/06/2026
 
