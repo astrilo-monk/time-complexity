@@ -92,7 +92,7 @@ export function detectMutualRecursion(callGraph) {
 
   function dfs(node) {
     if (inStack.has(node)) {
-      // Found a cycle — extract it
+      // Found a cycle - extract it
       const cycleStart = stack.indexOf(node);
       const cycle = stack.slice(cycleStart);
       if (cycle.length > 1) {

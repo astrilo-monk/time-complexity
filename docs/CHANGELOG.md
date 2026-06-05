@@ -8,12 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Recursion Analyzer — time complexity estimation from recursive structures
+- Recursion Analyzer - time complexity estimation from recursive structures
   - Linear recursion: f(n-1) with O(1) work → O(n)
   - Linear recursion with loops: f(n-1) with O(n) work → O(n²)
   - Binary recursion: f(n-1) + f(n-2) → O(2ⁿ) (Fibonacci-style)
   - Halving recursion: f(n/2) → O(log n) (binary search)
-  - Divide-and-conquer: 2×f(n/2) + O(n) merge → O(n log n) (merge sort)
+  - Divide-and-conquer: 2�-f(n/2) + O(n) merge → O(n log n) (merge sort)
   - Tail recursion detection → O(n)
   - Simplified Master Theorem (T(n) = a·T(n/b) + O(n^d))
   - Base case detection
@@ -27,18 +27,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Complexity Algebra module (`BigO` class) — multiply, add, compare, parse operations
-- Confidence Engine — weighted signal-based scoring (0.0 to 1.0) with human-readable explanations
-- Complexity Engine — analysis pipeline orchestrator (parse → IR → analyze → report)
-- Loop Analyzer — time complexity estimation from loop structures
-  - O(1) constant — no loops
-  - O(log n) — multiplicative increment (`i *= 2`) or while-loop halving (`n /= 2`)
-  - O(√n) — `i * i <= n` patterns
-  - O(n) — single linear loop, for-each, while with decrement
-  - O(n log n) — linear outer + logarithmic inner
-  - O(n²) — two nested linear loops
-  - O(n³) — three nested linear loops
-  - O(n⁴) — four nested linear loops
+- Complexity Algebra module (`BigO` class) - multiply, add, compare, parse operations
+- Confidence Engine - weighted signal-based scoring (0.0 to 1.0) with human-readable explanations
+- Complexity Engine - analysis pipeline orchestrator (parse → IR → analyze → report)
+- Loop Analyzer - time complexity estimation from loop structures
+  - O(1) constant - no loops
+  - O(log n) - multiplicative increment (`i *= 2`) or while-loop halving (`n /= 2`)
+  - O(√n) - `i * i <= n` patterns
+  - O(n) - single linear loop, for-each, while with decrement
+  - O(n log n) - linear outer + logarithmic inner
+  - O(n²) - two nested linear loops
+  - O(n³) - three nested linear loops
+  - O(n⁴) - four nested linear loops
 - Branch analysis for if/else inside loops (worst-case path)
 - Public `analyze()` convenience function wiring all analyzers
 - Step-by-step reasoning output explaining how each complexity was derived

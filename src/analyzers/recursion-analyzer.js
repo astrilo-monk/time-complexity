@@ -1,5 +1,5 @@
 /**
- * Recursion Analyzer — Time complexity estimation from recursive structures
+ * Recursion Analyzer - Time complexity estimation from recursive structures
  *
  * Detects recursive functions and estimates complexity by analyzing:
  *   - Number of recursive calls per invocation
@@ -8,12 +8,12 @@
  *   - Recursion combined with loops
  *
  * Supported patterns:
- *   O(n)     — Linear recursion: f(n-1) with O(1) work
- *   O(n²)    — Linear recursion: f(n-1) with O(n) work per call
- *   O(log n) — Halving recursion: f(n/2) with O(1) work, single call
- *   O(n log n)— Halving recursion: f(n/2) with O(n) work, or 2 calls to f(n/2) with O(n) merge
- *   O(2ⁿ)    — Binary recursion: f(n-1) + f(n-1) (Fibonacci-style)
- *   O(n)     — Tail recursion: f(n-1) with accumulator
+ *   O(n)     - Linear recursion: f(n-1) with O(1) work
+ *   O(n²)    - Linear recursion: f(n-1) with O(n) work per call
+ *   O(log n) - Halving recursion: f(n/2) with O(1) work, single call
+ *   O(n log n)- Halving recursion: f(n/2) with O(n) work, or 2 calls to f(n/2) with O(n) merge
+ *   O(2ⁿ)    - Binary recursion: f(n-1) + f(n-1) (Fibonacci-style)
+ *   O(n)     - Tail recursion: f(n-1) with accumulator
  *
  * Uses a simplified Master Theorem approach:
  *   T(n) = a * T(n/b) + O(n^d)
@@ -77,7 +77,7 @@ export class RecursionAnalyzer {
       confidence.addSignal('base_case_found', 'Recursion has a clear base case');
       confidence.addSignal('termination_certain', 'Base case guarantees termination');
     } else {
-      reasoning.push('⚠ No obvious base case found — termination uncertain.');
+      reasoning.push('⚠ No obvious base case found - termination uncertain.');
     }
 
     // ── Step 3: Classify the recursion type ────────────────
@@ -185,19 +185,19 @@ export class RecursionAnalyzer {
         return { type: 'tail', reductionType: 'halving', reductionValue: reductions.value };
       }
 
-      reasoning.push('Reduction pattern not fully determined — assuming subtractive.');
+      reasoning.push('Reduction pattern not fully determined - assuming subtractive.');
       return { type: 'tail', reductionType: 'subtractive', reductionValue: 1 };
     }
 
     // ── Single recursive call (linear or divide) ──────────
     if (callCount === 1) {
       if (reductions.type === 'halving') {
-        reasoning.push(`Pattern: divide recursion — single call with n / ${reductions.value}.`);
+        reasoning.push(`Pattern: divide recursion - single call with n / ${reductions.value}.`);
         confidence.addSignal('known_pattern', 'Recognized divide-and-conquer (single call)');
         return { type: 'divide', reductionType: 'halving', reductionValue: reductions.value };
       }
 
-      reasoning.push(`Pattern: linear recursion — single call with n - ${reductions.value || 1}.`);
+      reasoning.push(`Pattern: linear recursion - single call with n - ${reductions.value || 1}.`);
       confidence.addSignal('known_pattern', 'Recognized linear recursion');
       return { type: 'linear', reductionType: 'subtractive', reductionValue: reductions.value || 1 };
     }
@@ -205,19 +205,19 @@ export class RecursionAnalyzer {
     // ── Two recursive calls ───────────────────────────────
     if (callCount === 2) {
       if (reductions.type === 'halving') {
-        reasoning.push(`Pattern: divide-and-conquer — 2 calls with n / ${reductions.value}.`);
+        reasoning.push(`Pattern: divide-and-conquer - 2 calls with n / ${reductions.value}.`);
         confidence.addSignal('known_pattern', 'Recognized divide-and-conquer (merge sort style)');
         return { type: 'divide', reductionType: 'halving', reductionValue: reductions.value, callCount: 2 };
       }
 
-      reasoning.push('Pattern: binary recursion — 2 calls with subtractive reduction (Fibonacci-style).');
+      reasoning.push('Pattern: binary recursion - 2 calls with subtractive reduction (Fibonacci-style).');
       confidence.addSignal('known_pattern', 'Recognized binary tree recursion');
       confidence.addSignal('multiple_recursive_calls', 'Two recursive calls per invocation');
       return { type: 'binary', reductionType: 'subtractive', reductionValue: reductions.value || 1 };
     }
 
     // ── Three or more recursive calls ─────────────────────
-    reasoning.push(`Pattern: multiple recursion — ${callCount} recursive calls.`);
+    reasoning.push(`Pattern: multiple recursion - ${callCount} recursive calls.`);
     confidence.addSignal('multiple_recursive_calls', `${callCount} recursive calls per invocation`);
     return { type: 'multiple', reductionType: reductions.type || 'subtractive', reductionValue: reductions.value || 1, callCount };
   }
@@ -267,7 +267,7 @@ export class RecursionAnalyzer {
           return { type: 'subtractive', value: parseInt(subMatch[1]) };
         }
 
-        // mid, left, right — heuristic for binary search / merge sort
+        // mid, left, right - heuristic for binary search / merge sort
         if (/^(mid|left|right|lo|hi|low|high)$/i.test(text)) {
           return { type: 'halving', value: 2 };
         }
@@ -322,18 +322,18 @@ export class RecursionAnalyzer {
     const loops = func.body.findAll(n => n.type === 'loop');
 
     if (loops.length === 0) {
-      reasoning.push('Work per call: O(1) — no loops in the function body.');
+      reasoning.push('Work per call: O(1) - no loops in the function body.');
       return BigO.O1();
     }
 
     // Estimate loop complexity
     const depth = maxLoopDepth(func);
     if (depth >= 2) {
-      reasoning.push(`Work per call: O(n²) — nested loops (depth ${depth}) in the function body.`);
+      reasoning.push(`Work per call: O(n²) - nested loops (depth ${depth}) in the function body.`);
       return BigO.N2();
     }
 
-    reasoning.push('Work per call: O(n) — loop found in the function body.');
+    reasoning.push('Work per call: O(n) - loop found in the function body.');
     return BigO.N();
   }
 
@@ -411,7 +411,7 @@ export class RecursionAnalyzer {
     }
 
     // ── Fallback ──────────────────────────────────────────
-    reasoning.push('Recursion pattern not fully recognized — assuming O(n).');
+    reasoning.push('Recursion pattern not fully recognized - assuming O(n).');
     confidence.addSignal('unknown_bounds', 'Recursion pattern not recognized');
     return BigO.N();
   }
@@ -448,7 +448,7 @@ export class RecursionAnalyzer {
     }
 
     if (Math.abs(a - Math.pow(b, d)) < 0.01) {
-      // Case 2: balanced — O(n^d * log n)
+      // Case 2: balanced - O(n^d * log n)
       let result;
       if (d === 0) {
         result = BigO.LOGN();
@@ -462,7 +462,7 @@ export class RecursionAnalyzer {
       return result;
     }
 
-    // Case 3: recursion dominates — O(n^(log_b(a)))
+    // Case 3: recursion dominates - O(n^(log_b(a)))
     const degree = Math.round(logba);
     let result;
     if (degree <= 0) result = BigO.O1();

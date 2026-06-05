@@ -147,7 +147,7 @@ describe('maxLoopDepth', () => {
     const func = new FunctionNode('foo', []);
     const body = new BlockNode();
 
-    // Sequential loop — depth 1
+    // Sequential loop - depth 1
     const seq = new LoopNode('for');
     seq.setBody(new BlockNode());
     body.addStatement(seq);

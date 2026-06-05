@@ -51,15 +51,15 @@ Each supported language has a parser adapter that extends `BaseParser`. The adap
 
 The IR is a tree of typed nodes:
 
-- `ProgramNode` — root, contains functions
-- `FunctionNode` — function/method definition with name, params, body
-- `LoopNode` — for/while/do-while/for-each with loop metadata
-- `BranchNode` — if/else with condition and branches
-- `CallNode` — function call with target name and arguments
-- `VariableNode` — declaration or assignment
-- `AllocationNode` — memory allocation (malloc, new, collections)
-- `ReturnNode`, `BreakNode`, `ContinueNode` — control flow
-- `ExpressionNode` — catch-all for other expressions
+- `ProgramNode` - root, contains functions
+- `FunctionNode` - function/method definition with name, params, body
+- `LoopNode` - for/while/do-while/for-each with loop metadata
+- `BranchNode` - if/else with condition and branches
+- `CallNode` - function call with target name and arguments
+- `VariableNode` - declaration or assignment
+- `AllocationNode` - memory allocation (malloc, new, collections)
+- `ReturnNode`, `BreakNode`, `ContinueNode` - control flow
+- `ExpressionNode` - catch-all for other expressions
 
 All nodes inherit from `IRNode`, which provides tree traversal (`findAll`, `findFirst`, `_walk`).
 
@@ -69,20 +69,20 @@ The IR also includes an `builder.js` module with post-parse utilities:
 - Mutual recursion detection via cycle finding
 - Loop depth counting
 
-### Analysis Pipeline (`src/analyzers/`) — *Coming in later phases*
+### Analysis Pipeline (`src/analyzers/`) - *Coming in later phases*
 
 Each analyzer is independent and works against the IR:
 
-- **Loop Analyzer** — Estimates loop complexity from loop metadata (O(1) through O(n³))
-- **Recursion Analyzer** — Extracts recurrence relations, applies Master Theorem
-- **Space Analyzer** — Estimates memory usage from allocations and recursion depth
-- **Algorithm Detector** — Heuristic pattern matching for known algorithms
+- **Loop Analyzer** - Estimates loop complexity from loop metadata (O(1) through O(n³))
+- **Recursion Analyzer** - Extracts recurrence relations, applies Master Theorem
+- **Space Analyzer** - Estimates memory usage from allocations and recursion depth
+- **Algorithm Detector** - Heuristic pattern matching for known algorithms
 
-### Core Engine (`src/core/`) — *Coming in later phases*
+### Core Engine (`src/core/`) - *Coming in later phases*
 
-- **Complexity Engine** — Orchestrates analyzers and combines their results
-- **Complexity Algebra** — Big-O math (multiply, add, simplify, compare)
-- **Confidence Engine** — Weighted signal-based confidence scoring
+- **Complexity Engine** - Orchestrates analyzers and combines their results
+- **Complexity Algebra** - Big-O math (multiply, add, simplify, compare)
+- **Confidence Engine** - Weighted signal-based confidence scoring
 
 ## Key Design Decisions
 

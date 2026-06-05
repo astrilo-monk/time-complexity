@@ -1,5 +1,5 @@
 /**
- * Demo script — run with: node demo.js
+ * Demo script - run with: node demo.js
  *
  * Shows the full analysis engine in action: source code → complexity estimate.
  */
@@ -32,13 +32,13 @@ function printResult(title, code, language) {
 }
 
 // ─── O(1): Constant ──────────────────────────────────────────
-printResult('Python — O(1) Constant', `
+printResult('Python - O(1) Constant', `
 def add(a, b):
     return a + b
 `, 'python');
 
 // ─── O(n): Linear Loop ──────────────────────────────────────
-printResult('C — O(n) Linear Sum', `
+printResult('C - O(n) Linear Sum', `
 int sum(int n) {
     int total = 0;
     for (int i = 0; i < n; i++) {
@@ -49,7 +49,7 @@ int sum(int n) {
 `, 'c');
 
 // ─── O(log n): Multiplicative Loop ──────────────────────────
-printResult('C++ — O(log n) Binary Search Pattern', `
+printResult('C++ - O(log n) Binary Search Pattern', `
 int logSearch(int n) {
     int count = 0;
     for (int i = 1; i < n; i *= 2) {
@@ -60,7 +60,7 @@ int logSearch(int n) {
 `, 'cpp');
 
 // ─── O(n²): Bubble Sort ────────────────────────────────────
-printResult('Python — O(n²) Bubble Sort', `
+printResult('Python - O(n²) Bubble Sort', `
 def bubble_sort(arr):
     n = len(arr)
     for i in range(n):
@@ -70,7 +70,7 @@ def bubble_sort(arr):
 `, 'python');
 
 // ─── O(n log n): Linearithmic ───────────────────────────────
-printResult('C — O(n log n) Linear × Log', `
+printResult('C - O(n log n) Linear × Log', `
 void nlogn(int n) {
     for (int i = 0; i < n; i++) {
         for (int j = 1; j < n; j *= 2) {
@@ -81,7 +81,7 @@ void nlogn(int n) {
 `, 'c');
 
 // ─── O(n³): Matrix Multiplication ──────────────────────────
-printResult('Java — O(n³) Matrix Multiply', `
+printResult('Java - O(n³) Matrix Multiply', `
 public class Matrix {
     void multiply(int n) {
         for (int i = 0; i < n; i++) {
@@ -96,7 +96,7 @@ public class Matrix {
 `, 'java');
 
 // ─── O(n): Factorial (Linear Recursion) ─────────────────────
-printResult('C — O(n) Factorial (Recursion)', `
+printResult('C - O(n) Factorial (Recursion)', `
 int factorial(int n) {
     if (n <= 1) return 1;
     return n * factorial(n - 1);
@@ -104,7 +104,7 @@ int factorial(int n) {
 `, 'c');
 
 // ─── O(2ⁿ): Fibonacci (Binary Recursion) ───────────────────
-printResult('Python — O(2ⁿ) Fibonacci (Binary Recursion)', `
+printResult('Python - O(2ⁿ) Fibonacci (Binary Recursion)', `
 def fib(n):
     if n <= 1:
         return n
@@ -112,7 +112,7 @@ def fib(n):
 `, 'python');
 
 // ─── O(log n): Binary Search (Halving Recursion) ────────────
-printResult('C — O(log n) Binary Search (Recursion)', `
+printResult('C - O(log n) Binary Search (Recursion)', `
 int bsearch(int arr[], int n, int target) {
     if (n <= 0) return -1;
     if (arr[n/2] == target) return n/2;
@@ -121,7 +121,7 @@ int bsearch(int arr[], int n, int target) {
 `, 'c');
 
 // ─── O(n log n): Merge Sort ─────────────────────────────────
-printResult('C — O(n log n) Merge Sort', `
+printResult('C - O(n log n) Merge Sort', `
 void merge_sort(int arr[], int n) {
     if (n <= 1) return;
     merge_sort(arr, n / 2);
@@ -133,7 +133,7 @@ void merge_sort(int arr[], int n) {
 `, 'c');
 
 // ─── O(n²): Recursion + Loop ────────────────────────────────
-printResult('C — O(n²) Recursion with O(n) Loop', `
+printResult('C - O(n²) Recursion with O(n) Loop', `
 void process(int n) {
     if (n <= 0) return;
     for (int i = 0; i < n; i++) {
@@ -144,5 +144,5 @@ void process(int n) {
 `, 'c');
 
 console.log('═══════════════════════════════════════════════════════');
-console.log('  ✅ Analysis engine working — loops + recursion!');
+console.log('  ✅ Analysis engine working - loops + recursion!');
 console.log('═══════════════════════════════════════════════════════');

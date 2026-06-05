@@ -193,7 +193,7 @@ export class PythonParser extends BaseParser {
 
     let loop;
     if (rangeInfo) {
-      // range() makes this a counted loop — treat as 'for'
+      // range() makes this a counted loop - treat as 'for'
       loop = new LoopNode('for', this.loc(tsNode));
       loop.iteratorVar = iteratorVar;
       loop.boundVar = rangeInfo.bound;
@@ -308,7 +308,7 @@ export class PythonParser extends BaseParser {
     const alternativeNode = this.getField(tsNode, 'alternative');
     if (alternativeNode) {
       if (alternativeNode.type === 'elif_clause') {
-        // elif is essentially another if — create nested BranchNode
+        // elif is essentially another if - create nested BranchNode
         const elifBranch = new BranchNode(this.loc(alternativeNode));
         const elifCond = this.getField(alternativeNode, 'condition');
         if (elifCond) elifBranch.condition = this.getNodeText(elifCond);
@@ -345,7 +345,7 @@ export class PythonParser extends BaseParser {
   /**
    * Recursively walk a CST expression node to extract embedded function calls.
    * This is needed because calls can be nested inside binary expressions,
-   * e.g., `n * factorial(n-1)` — the call to factorial must be captured.
+   * e.g., `n * factorial(n-1)` - the call to factorial must be captured.
    * @param {object} tsNode - tree-sitter expression node
    * @param {IRNode} parent - IR node to add extracted calls to
    */
@@ -533,7 +533,7 @@ export class PythonParser extends BaseParser {
   }
 
   /**
-   * Process a class definition — extract methods as functions.
+   * Process a class definition - extract methods as functions.
    * @param {object} tsNode
    * @returns {IRNode|null}
    */

@@ -9,9 +9,9 @@ import { analyze } from '../../../src/index.js';
 
 describe('RecursionAnalyzer', () => {
 
-  // ─── O(n) — Linear recursion ──────────────────────────────
+  // ─── O(n) - Linear recursion ──────────────────────────────
 
-  describe('O(n) — linear recursion', () => {
+  describe('O(n) - linear recursion', () => {
     it('C: factorial(n-1) with O(1) work → O(n)', () => {
       const result = analyze(`
 int factorial(int n) {
@@ -50,9 +50,9 @@ public class Main {
     });
   });
 
-  // ─── O(2ⁿ) — Binary recursion (Fibonacci) ────────────────
+  // ─── O(2ⁿ) - Binary recursion (Fibonacci) ────────────────
 
-  describe('O(2ⁿ) — binary recursion', () => {
+  describe('O(2ⁿ) - binary recursion', () => {
     it('C: fib(n-1) + fib(n-2) → O(2ⁿ)', () => {
       const result = analyze(`
 int fib(int n) {
@@ -76,9 +76,9 @@ def fib(n):
     });
   });
 
-  // ─── O(log n) — Halving recursion ─────────────────────────
+  // ─── O(log n) - Halving recursion ─────────────────────────
 
-  describe('O(log n) — halving recursion', () => {
+  describe('O(log n) - halving recursion', () => {
     it('C: binary_search(n/2) → O(log n)', () => {
       const result = analyze(`
 int bsearch(int arr[], int n, int target) {
@@ -103,9 +103,9 @@ def power(base, n):
     });
   });
 
-  // ─── O(n log n) — Merge sort style ────────────────────────
+  // ─── O(n log n) - Merge sort style ────────────────────────
 
-  describe('O(n log n) — divide and conquer with O(n) merge', () => {
+  describe('O(n log n) - divide and conquer with O(n) merge', () => {
     it('C: merge_sort: 2 calls to f(n/2) with O(n) work → O(n log n)', () => {
       const result = analyze(`
 void merge_sort(int arr[], int n) {

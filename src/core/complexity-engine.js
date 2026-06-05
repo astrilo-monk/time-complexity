@@ -1,5 +1,5 @@
 /**
- * Complexity Engine — Analysis pipeline orchestrator
+ * Complexity Engine - Analysis pipeline orchestrator
  *
  * Coordinates the full analysis pipeline:
  *   Source Code → Parser → IR → Analyzers → Result

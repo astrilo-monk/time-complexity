@@ -1,6 +1,6 @@
 # Complexity Analyzer
 
-A static program analysis engine that estimates time complexity, space complexity, recursion behavior, and algorithmic characteristics of source code — with explainable reasoning.
+A static program analysis engine that estimates time complexity, space complexity, recursion behavior, and algorithmic characteristics of source code - with explainable reasoning.
 
 ## What This Does
 
@@ -16,7 +16,7 @@ This is **not** a simple pattern matcher. It performs structural AST analysis to
 
 ## Current Status
 
-**v0.3.0** — Loop + Recursion Analysis
+**v0.3.0** - Loop + Recursion Analysis
 
 - [x] Project scaffolding and tooling
 - [x] Common IR node types
@@ -78,12 +78,12 @@ console.log(result.functions[0].reasoning);
 | For-each | `for item in items` | O(n) |
 | Nested loops | `for i` → `for j` | O(n²) |
 | Triple nested | `for i` → `for j` → `for k` | O(n³) |
-| Linear × log | `for(i)` → `for(j*=2)` | O(n log n) |
+| Linear �- log | `for(i)` → `for(j*=2)` | O(n log n) |
 | Sequential | `O(n) then O(n²)` | O(n²) |
 | Factorial | `f(n-1)` with O(1) work | O(n) |
 | Fibonacci | `f(n-1) + f(n-2)` | O(2ⁿ) |
 | Binary search | `f(n/2)` single call | O(log n) |
-| Merge sort | `2×f(n/2)` + O(n) merge | O(n log n) |
+| Merge sort | `2�-f(n/2)` + O(n) merge | O(n log n) |
 | Recursion + loop | `f(n-1)` with O(n) loop | O(n²) |
 | Tail recursion | `return f(n-1, acc)` | O(n) |
 
@@ -132,11 +132,11 @@ node demo.js         # See the engine in action
 
 ## Design Goals
 
-1. **API-first** — Designed for programmatic consumption, not just CLI output
-2. **Modular** — Each analyzer is independent and composable
-3. **Extensible** — Adding a new language or analyzer should be straightforward
-4. **Honest** — Confidence scoring and documented limitations over false precision
-5. **Explainable** — Every result includes step-by-step reasoning
+1. **API-first** - Designed for programmatic consumption, not just CLI output
+2. **Modular** - Each analyzer is independent and composable
+3. **Extensible** - Adding a new language or analyzer should be straightforward
+4. **Honest** - Confidence scoring and documented limitations over false precision
+5. **Explainable** - Every result includes step-by-step reasoning
 
 ## Integration with Code Tracer
 

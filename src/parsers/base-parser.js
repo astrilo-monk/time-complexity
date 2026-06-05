@@ -117,7 +117,7 @@ export class BaseParser {
 
   /**
    * Analyze a for-loop's init/condition/update to extract iteration metadata.
-   * This is a best-effort analysis — returns null fields when info isn't extractable.
+   * This is a best-effort analysis - returns null fields when info isn't extractable.
    *
    * @param {object} initNode - tree-sitter node for initialization
    * @param {object} conditionNode - tree-sitter node for condition

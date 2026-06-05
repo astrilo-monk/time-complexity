@@ -46,7 +46,7 @@ export { LoopAnalyzer } from './analyzers/loop-analyzer.js';
 export { RecursionAnalyzer } from './analyzers/recursion-analyzer.js';
 
 /**
- * Convenience function — the primary public API.
+ * Convenience function - the primary public API.
  *
  * Wires up the engine with all available analyzers and runs analysis.
  *

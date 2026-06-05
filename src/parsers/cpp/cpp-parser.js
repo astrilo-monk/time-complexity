@@ -24,7 +24,7 @@ import {
   ExpressionNode,
 } from '../base-parser.js';
 
-/** STL container types that imply heap allocation — sorted longest-first to prevent substring false matches */
+/** STL container types that imply heap allocation - sorted longest-first to prevent substring false matches */
 const STL_CONTAINERS = [
   'unordered_multimap', 'unordered_multiset',
   'unordered_map', 'unordered_set',
@@ -207,7 +207,7 @@ export class CppParser extends BaseParser {
   }
 
   /**
-   * Process a class/struct definition — extract method definitions.
+   * Process a class/struct definition - extract method definitions.
    * @param {object} tsNode
    * @returns {FunctionNode[]}
    */
@@ -230,7 +230,7 @@ export class CppParser extends BaseParser {
         // skip public/private/protected
         continue;
       } else if (child.type === 'declaration') {
-        // Could be an inline method declaration — skip for now
+        // Could be an inline method declaration - skip for now
         continue;
       }
     }

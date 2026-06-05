@@ -10,9 +10,9 @@ import { analyze } from '../../../src/index.js';
 
 describe('LoopAnalyzer', () => {
 
-  // ─── O(1) — No loops ───────────────────────────────────────
+  // ─── O(1) - No loops ───────────────────────────────────────
 
-  describe('O(1) — constant time', () => {
+  describe('O(1) - constant time', () => {
     it('function with no loops → O(1)', () => {
       const result = analyze(`
 def add(a, b):
@@ -33,9 +33,9 @@ int compute(int x) {
     });
   });
 
-  // ─── O(n) — Single linear loop ─────────────────────────────
+  // ─── O(n) - Single linear loop ─────────────────────────────
 
-  describe('O(n) — linear time', () => {
+  describe('O(n) - linear time', () => {
     it('Python: for i in range(n) → O(n)', () => {
       const result = analyze(`
 def linear(n):
@@ -98,9 +98,9 @@ def process(items):
     });
   });
 
-  // ─── O(log n) — Logarithmic ────────────────────────────────
+  // ─── O(log n) - Logarithmic ────────────────────────────────
 
-  describe('O(log n) — logarithmic time', () => {
+  describe('O(log n) - logarithmic time', () => {
     it('C: i *= 2 → O(log n)', () => {
       const result = analyze(`
 int logSearch(int n) {
@@ -143,9 +143,9 @@ public class Main {
     });
   });
 
-  // ─── O(n²) — Quadratic ────────────────────────────────────
+  // ─── O(n²) - Quadratic ────────────────────────────────────
 
-  describe('O(n²) — quadratic time', () => {
+  describe('O(n²) - quadratic time', () => {
     it('Python: nested for-range loops → O(n²)', () => {
       const result = analyze(`
 def nested(n):
@@ -185,9 +185,9 @@ public class Main {
     });
   });
 
-  // ─── O(n³) — Cubic ────────────────────────────────────────
+  // ─── O(n³) - Cubic ────────────────────────────────────────
 
-  describe('O(n³) — cubic time', () => {
+  describe('O(n³) - cubic time', () => {
     it('C: triple nested loops → O(n³)', () => {
       const result = analyze(`
 void matmul(int n) {
@@ -204,9 +204,9 @@ void matmul(int n) {
     });
   });
 
-  // ─── O(n log n) — Linearithmic ────────────────────────────
+  // ─── O(n log n) - Linearithmic ────────────────────────────
 
-  describe('O(n log n) — linearithmic time', () => {
+  describe('O(n log n) - linearithmic time', () => {
     it('C: linear outer + log inner → O(n log n)', () => {
       const result = analyze(`
 void nlogn(int n) {
@@ -231,7 +231,7 @@ def nlogn(n):
       // The while loop has j *= 2 but detecting it from the body
       // requires the halving/multiplying pattern detection
       const display = result.functions[0].display;
-      // May be O(n²) if while-loop isn't classified as O(log n) —
+      // May be O(n²) if while-loop isn't classified as O(log n) -
       // the while analyzer does pattern detection
       expect(['O(n log n)', 'O(n²)']).toContain(display);
     });

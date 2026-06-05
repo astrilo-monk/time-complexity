@@ -1,23 +1,23 @@
 /**
- * Loop Analyzer — Time complexity estimation from loop structures
+ * Loop Analyzer - Time complexity estimation from loop structures
  *
  * This is the primary complexity analyzer. It walks the IR tree
  * and estimates time complexity based on loop nesting, loop bounds,
  * increment patterns, and control flow.
  *
  * Detection capabilities:
- *   O(1)       — No loops
- *   O(log n)   — Multiplicative increment (i *= 2) or halving (n /= 2)
- *   O(√n)      — i * i <= n pattern
- *   O(n)       — Single linear loop
- *   O(n log n) — Linear loop containing a log loop
- *   O(n²)      — Two nested linear loops
- *   O(n³)      — Three nested linear loops
- *   O(n⁴)      — Four nested linear loops
+ *   O(1)       - No loops
+ *   O(log n)   - Multiplicative increment (i *= 2) or halving (n /= 2)
+ *   O(√n)      - i * i <= n pattern
+ *   O(n)       - Single linear loop
+ *   O(n log n) - Linear loop containing a log loop
+ *   O(n²)      - Two nested linear loops
+ *   O(n³)      - Three nested linear loops
+ *   O(n⁴)      - Four nested linear loops
  *
  * Reasoning:
  *   The analyzer produces step-by-step reasoning explaining
- *   how each complexity was derived — like a DSA instructor.
+ *   how each complexity was derived - like a DSA instructor.
  */
 
 import { BigO, fromDegree } from '../core/complexity-algebra.js';
@@ -59,7 +59,7 @@ export class LoopAnalyzer {
     const confidence = new ConfidenceEngine();
 
     if (!func.body) {
-      reasoning.push(`Function "${func.name}" has no body — O(1).`);
+      reasoning.push(`Function "${func.name}" has no body - O(1).`);
       return this.makeResult(func, BigO.O1(), confidence, reasoning);
     }
 
@@ -67,7 +67,7 @@ export class LoopAnalyzer {
     const bodyComplexity = this.analyzeBlock(func.body, 0, reasoning, confidence, func.name);
 
     if (bodyComplexity.isConstant()) {
-      reasoning.push(`No loops found in "${func.name}" — O(1).`);
+      reasoning.push(`No loops found in "${func.name}" - O(1).`);
     }
 
     return this.makeResult(func, bodyComplexity, confidence, reasoning);
@@ -124,7 +124,7 @@ export class LoopAnalyzer {
       case 'allocation':
         return BigO.O1();
       case 'function':
-        // Nested function definition — analyze independently
+        // Nested function definition - analyze independently
         return BigO.O1();
       default:
         return BigO.O1();
@@ -242,7 +242,7 @@ export class LoopAnalyzer {
     }
 
     // ── Fallback ───────────────────────────────────────────
-    reasoning.push(`${indent}Cannot determine loop iteration count — assuming O(n)`);
+    reasoning.push(`${indent}Cannot determine loop iteration count - assuming O(n)`);
     confidence.addSignal('unknown_bounds', 'Loop bounds could not be determined');
     return BigO.N();
   }
@@ -296,7 +296,7 @@ export class LoopAnalyzer {
     }
 
     // Unknown increment type
-    reasoning.push(`${indent}for-loop with unrecognized increment pattern — assuming O(n)`);
+    reasoning.push(`${indent}for-loop with unrecognized increment pattern - assuming O(n)`);
     confidence.addSignal('unknown_increment', `Increment pattern not recognized`);
     return BigO.N();
   }
@@ -344,7 +344,7 @@ export class LoopAnalyzer {
 
     // Default: assume O(n) with lower confidence
     reasoning.push(
-      `${indent}while-loop condition: "${condition}" — assuming O(n)`
+      `${indent}while-loop condition: "${condition}" - assuming O(n)`
     );
     confidence.addSignal('input_dependent_condition', 'While-loop bound is input-dependent');
     return BigO.N();

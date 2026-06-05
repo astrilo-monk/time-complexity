@@ -289,7 +289,7 @@ export class ContinueNode extends IRNode {
 }
 
 /**
- * Expression node — catch-all for expressions that don't fit other categories.
+ * Expression node - catch-all for expressions that don't fit other categories.
  * Stores the raw expression text for analysis.
  */
 export class ExpressionNode extends IRNode {

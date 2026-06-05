@@ -1,5 +1,5 @@
 /**
- * Complexity Algebra — Big-O arithmetic
+ * Complexity Algebra - Big-O arithmetic
  *
  * Provides a BigO class for representing, combining, and simplifying
  * asymptotic complexity expressions. This is the mathematical backbone
@@ -9,14 +9,14 @@
  *   O(1), O(log n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ), O(n!)
  *
  * Operations:
- *   multiply — for nested loops: O(n) * O(n) = O(n²)
- *   add      — for sequential code: O(n) + O(n²) = O(n²) (dominant term)
- *   compare  — ordering complexities
+ *   multiply - for nested loops: O(n) * O(n) = O(n²)
+ *   add      - for sequential code: O(n) + O(n²) = O(n²) (dominant term)
+ *   compare  - ordering complexities
  */
 
 /**
  * Complexity class enumeration, ordered from smallest to largest.
- * The numeric value is used for comparison — higher = worse complexity.
+ * The numeric value is used for comparison - higher = worse complexity.
  */
 const COMPLEXITY_ORDER = {
   '1':       0,
@@ -256,7 +256,7 @@ const MULTIPLY_TABLE = {
   // n log n * n = n² log n ≈ n² (simplified)
   'n log n*n':     'n^3',
   'n*n log n':     'n^3',
-  // log n * log n ≈ log n (simplified — log²n grows slower than n)
+  // log n * log n ≈ log n (simplified - log²n grows slower than n)
   'log n*log n':   'log n',
   // n log n * log n ≈ n log n
   'n log n*log n': 'n log n',

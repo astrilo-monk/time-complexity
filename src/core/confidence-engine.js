@@ -1,5 +1,5 @@
 /**
- * Confidence Engine — Signal-based confidence scoring
+ * Confidence Engine - Signal-based confidence scoring
  *
  * Produces a confidence score (0.0 to 1.0) based on analysis signals.
  * Each signal has a weight and direction (positive = increases confidence,
@@ -58,7 +58,7 @@ export class ConfidenceEngine {
    */
   addSignal(signalName, reason = '') {
     if (!(signalName in SIGNAL_WEIGHTS)) {
-      // Unknown signal — ignore rather than crash
+      // Unknown signal - ignore rather than crash
       return this;
     }
 
