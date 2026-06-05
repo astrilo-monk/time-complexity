@@ -12,6 +12,7 @@
 import { ComplexityEngine } from './core/complexity-engine.js';
 import { LoopAnalyzer } from './analyzers/loop-analyzer.js';
 import { RecursionAnalyzer } from './analyzers/recursion-analyzer.js';
+import { SpaceAnalyzer } from './analyzers/space-analyzer.js';
 
 // Parser layer
 export { getParser, isLanguageSupported, getSupportedLanguages } from './parsers/parser-factory.js';
@@ -44,6 +45,7 @@ export { ConfidenceEngine, highConfidence, lowConfidence } from './core/confiden
 // Analyzers
 export { LoopAnalyzer } from './analyzers/loop-analyzer.js';
 export { RecursionAnalyzer } from './analyzers/recursion-analyzer.js';
+export { SpaceAnalyzer } from './analyzers/space-analyzer.js';
 
 /**
  * Convenience function - the primary public API.
@@ -58,7 +60,7 @@ export function analyze(sourceCode, options = {}) {
   const engine = new ComplexityEngine();
   engine.use(new LoopAnalyzer());
   engine.use(new RecursionAnalyzer());
-  // Future: engine.use(new SpaceAnalyzer());
+  engine.use(new SpaceAnalyzer());
   // Future: engine.use(new AlgorithmDetector());
   return engine.analyze(sourceCode, options);
 }

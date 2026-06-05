@@ -111,12 +111,23 @@ export class ComplexityEngine {
       ? max(allComplexities)
       : BigO.UNKNOWN();
 
+    // Overall space = max across all functions
+    const allSpaces = functionReports
+      .map(f => f.spaceComplexity)
+      .filter(c => c && !c.isUnknown());
+
+    const overallSpace = allSpaces.length > 0
+      ? max(allSpaces)
+      : BigO.O1();
+
     return {
       language: context.language,
       functions: functionReports,
       overall: {
         timeComplexity: overallComplexity,
         display: overallComplexity.toString(),
+        spaceComplexity: overallSpace,
+        spaceDisplay: overallSpace.toString(),
       },
       metadata: {
         functionCount: ir.functions.length,
@@ -162,11 +173,35 @@ export class ComplexityEngine {
     const reasoning = functionResults
       .flatMap(r => r.reasoning || []);
 
+    // Space complexity from space analyzer
+    const spaceResults = functionResults.filter(r => r.spaceComplexity);
+    const spaceComplexity = spaceResults.length > 0
+      ? max(spaceResults.map(r => r.spaceComplexity))
+      : BigO.O1();
+
+    const spaceConfidences = spaceResults
+      .map(r => r.confidence)
+      .filter(c => c);
+    const spaceConfAvg = spaceConfidences.length > 0
+      ? spaceConfidences.reduce((sum, c) => sum + c.score, 0) / spaceConfidences.length
+      : 0.5;
+
+    // Collect space reasoning separately
+    const spaceReasoning = spaceResults
+      .flatMap(r => r.reasoning || []);
+
     return {
       name: func.name,
       params: func.params,
       timeComplexity,
       display: timeComplexity.toString(),
+      spaceComplexity,
+      spaceDisplay: spaceComplexity.toString(),
+      spaceReasoning,
+      spaceConfidence: {
+        score: Math.round(spaceConfAvg * 100) / 100,
+        level: spaceConfAvg >= 0.75 ? 'high' : spaceConfAvg >= 0.5 ? 'medium' : 'low',
+      },
       confidence: {
         score: Math.round(avgConfidence * 100) / 100,
         level: avgConfidence >= 0.75 ? 'high' : avgConfidence >= 0.5 ? 'medium' : 'low',
