@@ -105,7 +105,7 @@ async function main() {
     let line = '';
     while (true) {
       line = await ask('  ');
-      if (line.trim() === 'END') break;
+      if (line.trim().toLowerCase() === 'end') break;
       code += line + '\n';
     }
 
