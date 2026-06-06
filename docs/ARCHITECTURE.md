@@ -76,7 +76,7 @@ Each analyzer is independent and works against the IR:
 - **Loop Analyzer** - Estimates loop complexity from loop metadata (O(1) through O(n^4))
 - **Recursion Analyzer** - Extracts recurrence relations, applies Master Theorem, detects exclusive branch recursion
 - **Space Analyzer** - Estimates memory usage from allocations and recursion stack depth
-- **Algorithm Detector** - Heuristic pattern matching for known algorithms (planned)
+- **Algorithm Detector** - Heuristic pattern matching for 9 known algorithm archetypes (binary search, sorting, divide-and-conquer, backtracking, two-pointer, matrix traversal, accumulation, linear search)
 
 ### Core Engine (`src/core/`)
 

@@ -90,14 +90,30 @@ console.log(result.functions[0].reasoning);
 | Tower of Hanoi | `f(n-1)` called twice | O(2^n) |
 | Subset generation | 2 sequential `f(n-1)` calls | O(2^n) |
 
+### Algorithm Patterns Detected
+
+The analyzer also identifies known algorithm archetypes:
+
+| Pattern | How it's detected |
+|---------|-------------------|
+| Binary Search | Recursive f(n/2) or while loop with `mid` variable |
+| Bubble Sort | Nested loops with comparison branch and swap |
+| Merge Sort | 2x f(n/2) calls with merge loop |
+| Divide and Conquer | 2+ recursive calls with halving |
+| Backtracking | 2 sequential recursive calls (choose/skip) |
+| Two Pointer | While loop with paired variables (left/right) |
+| Matrix Traversal | Triple nested loops |
+| Accumulation | Loop updating accumulator (sum, count, etc.) |
+| Linear Search | Loop with comparison and early return/break |
+
 ## Supported Languages
 
-| Language | Parser | Loop Analysis | Recursion Analysis | Space Analysis |
-|----------|--------|---------------|--------------------|-----------------|
-| C        | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
-| C++      | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
-| Java     | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
-| Python   | ✅ Done | ✅ Done        | ✅ Done             | ✅ Done          |
+| Language | Parser | Loop | Recursion | Space | Patterns |
+|----------|--------|------|-----------|-------|----------|
+| C        | Done | Done | Done | Done | Done |
+| C++      | Done | Done | Done | Done | Done |
+| Java     | Done | Done | Done | Done | Done |
+| Python   | Done | Done | Done | Done | Done |
 
 ## Project Structure
 
@@ -111,10 +127,11 @@ src/
 ├── ir/               # Common intermediate representation
 │   ├── nodes.js      # 12 IR node types
 │   └── builder.js    # Call graph, recursion detection
-├── analyzers/        # Analysis modules
+|├── analyzers/        # Analysis modules
 │   ├── loop-analyzer.js
 │   ├── recursion-analyzer.js
-│   └── space-analyzer.js
+│   ├── space-analyzer.js
+│   └── pattern-detector.js
 ├── core/             # Engine internals
 │   ├── complexity-algebra.js   # Big-O arithmetic
 │   ├── complexity-engine.js    # Pipeline orchestrator
@@ -125,6 +142,10 @@ src/
 ## Architecture
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
+
+## API Reference
+
+See [API.md](./API.md) for the complete public API documentation.
 
 ## Development
 

@@ -132,6 +132,8 @@ void subsets(int arr[], int n, int index, int current[], int size) {
 }
 `, 'c');
 
+
+
 console.log('=======================================================');
 console.log('  Hard cases done.');
 console.log('=======================================================');

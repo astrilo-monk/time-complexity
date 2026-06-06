@@ -117,3 +117,48 @@ after that i made a `demo-hard.js` file with 5 of the nastiest complexity patter
    - the recursion analyzer saw 2 calls and classified it as binary recursion (O(2^n)). but the calls are in exclusive if/else branches - only one runs per invocation. added `analyzeReductionPerCall()` which checks each call's reduction pattern separately. if they differ (halving vs subtractive), it knows they're in different branches and treats it as a single call with the dominant (halving) reduction. result: O(log n). correct.
 5. **subset generation** - backtracking with two sequential recursive calls. got it right: O(2^n).
 final score: 5/5 PASS. pretty happy with that. the exclusive branch detection was a nice addition to the analyzer - it handles a whole class of divide-and-conquer algorithms that have a "fast path" and a "fallback path".
+
+for fun i added dijkstra's algo and the output returned was n^2 for time , i knew my analyzer isn't graph aware but didn't knew this shit would be this deep , signing out before exams will work on this after exams or new backs :Brokenheart: 
+
+## 06/06/2026
+
+came back and finished the last two phases today. project is now complete.
+
+### phase 7 - algorithm pattern detector
+
+this was a different kind of analyzer. the loop/recursion/space analyzers estimate *complexity*, but the pattern detector identifies *what algorithm* the code looks like. it doesn't change the Big-O result, it just labels the function with recognized patterns.
+
+the approach is pure heuristic pattern matching against the IR tree structure. for each function, i run 9 detectors and collect all matches. a function can match multiple patterns - for example merge sort matches both "merge-sort" and "divide-and-conquer".
+
+the 9 patterns and how i detect them:
+1. **binary-search** - recursive f(n/2) with single call + branch, OR while loop with a `mid` variable.
+2. **bubble-sort** - two nested for-loops where the inner has a branch with 2+ assignments (swap) or a `temp` declaration.
+3. **merge-sort** - 2 recursive calls with n/2 reduction AND a loop (the merge step). without the loop it's just divide-and-conquer.
+4. **divide-and-conquer** - 2+ recursive calls with halving arguments.
+5. **backtracking** - 2 sequential recursive calls with subtractive reduction (index+1 or n-1). the "choose or skip" pattern.
+6. **two-pointer** - while loop with paired pointer variables. i check for naming pairs: left/right, lo/hi, low/high, start/end, l/r, i/j.
+7. **matrix-traversal** - triple nested loops (depth >= 3), or double nested with matrix-like variable names (dp, grid, matrix, etc.).
+8. **accumulation** - single loop updating a variable with an accumulator-like name (sum, count, total, result, product, ans, etc.).
+9. **linear-search** - single loop with a comparison branch that has a return or break (early exit on match).
+
+hardest part was handling Python. Python doesn't have variable declarations - `count = 0` is an assignment, not a declaration. my accumulation detector was looking for `kind === 'declaration'` and missing all Python accumulators. fixed by checking both kinds and filtering by top-level children of the function body instead of all descendants.
+
+17 new tests, 206 total. all passing.
+
+### phase 8 - API documentation
+
+wrote a complete API reference at `docs/API.md`. covers everything:
+- `analyze()` function - the main entry point
+- `getParser()`, `isLanguageSupported()`, `getSupportedLanguages()` utilities
+- result types (AnalysisReport, FunctionReport) with all fields documented
+- BigO class with factory methods, arithmetic, and comparison
+- ComplexityEngine for custom pipeline setups
+- ConfidenceEngine for signal-based scoring
+- all 4 analyzers with their interfaces
+- how to write a custom analyzer
+- IR node types and tree traversal methods
+- IR builder utilities
+
+also updated README with the patterns table, ARCHITECTURE with the detector description, and CHANGELOG with v0.5.0.
+
+all 8 phases done. 206 tests passing. the analyzer can now take code in 4 languages and tell you time complexity, space complexity, and what kind of algorithm it looks like. not bad for a week's work.

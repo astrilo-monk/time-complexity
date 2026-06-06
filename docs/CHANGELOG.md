@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 06/06/2026
+
+### Added
+
+- Pattern Detector - identifies 9 algorithm archetypes from IR structure:
+  - binary-search: recursive f(n/2) or iterative while-loop with mid variable
+  - bubble-sort: nested loops with comparison branch and swap pattern
+  - merge-sort: 2x f(n/2) recursive calls with merge loop
+  - divide-and-conquer: 2+ recursive calls with halving reduction
+  - backtracking: 2 sequential recursive calls with subtractive reduction
+  - two-pointer: while loop with paired pointer variables (left/right, lo/hi)
+  - matrix-traversal: triple nested loops or double nested with matrix variables
+  - accumulation: single loop updating an accumulator variable (sum, count, etc.)
+  - linear-search: single loop with comparison branch and early return/break
+- Functions can match multiple patterns (e.g. merge-sort is also divide-and-conquer)
+- Each pattern includes confidence level and reasoning
+- PatternDetector registered in default analyze() pipeline
+- API documentation (docs/API.md) - complete reference for all exports
+- 17 new tests for pattern detection (206 total)
+
 ## [0.4.0] - 05/06/2026
 
 ### Added
