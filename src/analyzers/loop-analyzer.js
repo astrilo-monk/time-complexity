@@ -116,12 +116,39 @@ export class LoopAnalyzer {
       case 'block':
         return this.analyzeBlock(stmt, depth, reasoning, confidence, funcName);
       case 'call':
+        // Detect O(log n) method calls (like pq.push, tree.insert)
+        if (stmt.functionName && /\b(push|insert|add|offer|poll|remove|pop)\b/.test(stmt.functionName)) {
+          if (/pq|heap|tree|map|set/i.test(stmt.functionName)) {
+            reasoning.push(`${'  '.repeat(depth)}Logarithmic operation detected: ${stmt.functionName} → O(log n)`);
+            return BigO.LOGN();
+          }
+        }
+        return BigO.O1();
       case 'variable':
       case 'expression':
       case 'return':
+        if (stmt.children && stmt.children.length > 0) {
+          let maxChild = BigO.O1();
+          for (const child of stmt.children) {
+            maxChild = maxChild.add(this.analyzeStatement(child, depth, reasoning, confidence, funcName));
+          }
+          return maxChild;
+        }
+        return BigO.O1();
       case 'break':
       case 'continue':
       case 'allocation':
+        // Allocating memory takes time proportional to the allocation size (e.g. array copying/initialization)
+        if (stmt.sizeExpression) {
+          const size = stmt.sizeExpression.trim();
+          if (/^[a-zA-Z_]\w*\s*\*\s*[a-zA-Z_]\w*$/.test(size)) {
+             reasoning.push(`Allocation of size "${size}" contributes O(n^2) time.`);
+             return BigO.N2();
+          } else if (/[a-zA-Z]/.test(size) && !/^\d+$/.test(size)) {
+             reasoning.push(`Allocation of size "${size}" contributes O(n) time.`);
+             return BigO.N();
+          }
+        }
         return BigO.O1();
       case 'function':
         // Nested function definition - analyze independently
@@ -189,7 +216,36 @@ export class LoopAnalyzer {
     }
 
     // ── Step 4: Total = iterations × body ──────────────────
-    const totalComplexity = iterationComplexity.multiply(bodyComplexity);
+    let totalComplexity = iterationComplexity.multiply(bodyComplexity);
+
+    // ── Step 5: Dependent Bounds Adjustments ─────────────────
+    if (loop.body) {
+      const innerLoops = loop.body.findAll(n => n.type === 'loop');
+      if (innerLoops.length > 0) {
+        const inner = innerLoops[0];
+        
+        // Geometric Series Pattern
+        if ((loop.incrementType === 'multiplicative' || loop.incrementType === 'divisive') && bodyComplexity.complexity === 'n') {
+          if (inner.incrementType === 'additive' && inner.boundVar === loop.iteratorVar) {
+            totalComplexity = BigO.N();
+            reasoning.push(`${indent}Dependent bounds: geometric series sum (inner bounded by outer ${loop.iteratorVar}) → O(n)`);
+            confidence.addSignal('geometric_series', 'Geometric series pattern detected');
+          }
+        }
+        
+        // Harmonic Series Pattern
+        if (loop.incrementType === 'additive' && bodyComplexity.complexity === 'n' && loop.iteratorVar) {
+          if (inner.incrementType === 'additive' && inner.condition) {
+            const regex = new RegExp(`\\/\\s*${loop.iteratorVar}\\b`);
+            if (regex.test(inner.condition)) {
+              totalComplexity = BigO.NLOGN();
+              reasoning.push(`${indent}Dependent bounds: harmonic series sum (inner divided by outer ${loop.iteratorVar}) → O(n log n)`);
+              confidence.addSignal('harmonic_series', 'Harmonic series pattern detected');
+            }
+          }
+        }
+      }
+    }
 
     // Build the reasoning string
     if (!bodyComplexity.isConstant()) {
@@ -258,48 +314,62 @@ export class LoopAnalyzer {
    */
   classifyCountedLoop(loop, reasoning, confidence, indent) {
     const { iteratorVar, boundVar, initValue, incrementType, incrementValue } = loop;
+    const vName = boundVar && /^[a-zA-Z]+$/.test(boundVar) ? boundVar : 'n';
+
+    if (this.isSqrtPattern(loop.condition || '')) {
+      reasoning.push(`${indent}for-loop with sqrt pattern (${loop.condition}) → O(√${vName})`);
+      confidence.addSignal('bounds_statically_known', 'Square root bound');
+      return BigO.SQRTN(vName);
+    }
+    
+    if (this.isLogLogPattern(loop.update || '')) {
+      reasoning.push(`${indent}for-loop with log-log pattern (${loop.update}) → O(log log ${vName})`);
+      confidence.addSignal('bounds_statically_known', `Loop bound: ${boundVar}`);
+      return BigO.LOGLOGN(vName);
+    }
 
     if (incrementType === 'multiplicative') {
       // i *= k → O(log n)
       reasoning.push(
         `${indent}for-loop: ${iteratorVar} starts at ${initValue}, ` +
-        `multiplied by ${incrementValue} each iteration → O(log n)`
+        `multiplied by ${incrementValue} each iteration → O(log ${vName})`
       );
       confidence.addSignal('bounds_statically_known', `Loop bound: ${boundVar}`);
       confidence.addSignal('simple_increment', `Multiplicative: ${iteratorVar} *= ${incrementValue}`);
       confidence.addSignal('termination_certain', 'Multiplicative loops converge');
-      return BigO.LOGN();
+      return BigO.LOGN(vName);
     }
 
     if (incrementType === 'divisive') {
       // n /= k → O(log n)
       reasoning.push(
         `${indent}for-loop: ${iteratorVar} starts at ${initValue}, ` +
-        `divided by ${incrementValue} each iteration → O(log n)`
+        `divided by ${incrementValue} each iteration → O(log ${vName})`
       );
       confidence.addSignal('bounds_statically_known', `Loop bound determined`);
       confidence.addSignal('simple_increment', `Divisive: ${iteratorVar} /= ${incrementValue}`);
       confidence.addSignal('termination_certain', 'Divisive loops converge');
-      return BigO.LOGN();
+      return BigO.LOGN(vName);
     }
 
     if (incrementType === 'additive') {
       // i += k → O(n) (or O(n/k) which simplifies to O(n))
       reasoning.push(
         `${indent}for-loop: ${iteratorVar} = ${initValue} to ${boundVar}, ` +
-        `step +${incrementValue} → O(n)`
+        `step +${incrementValue} → O(${vName})`
       );
       confidence.addSignal('bounds_statically_known', `Loop bound: ${boundVar}`);
       confidence.addSignal('simple_increment', `Additive: ${iteratorVar} += ${incrementValue}`);
       confidence.addSignal('termination_certain', 'Bounded additive loop');
-      return BigO.N();
+      return BigO.N(vName);
     }
 
     // Unknown increment type
-    reasoning.push(`${indent}for-loop with unrecognized increment pattern - assuming O(n)`);
+    reasoning.push(`${indent}for-loop with unrecognized increment pattern - assuming O(${vName})`);
     confidence.addSignal('unknown_increment', `Increment pattern not recognized`);
-    return BigO.N();
+    return BigO.N(vName);
   }
+
 
   /**
    * Classify a while or do-while loop based on its condition.
@@ -439,12 +509,25 @@ export class LoopAnalyzer {
 
   /**
    * Detect sqrt loop pattern: i*i <= n or i*i < n
-   * @param {string} condition
+   * @param {string} conditionText
    * @returns {boolean}
    */
-  isSqrtPattern(condition) {
-    if (!condition) return false;
-    return /\w+\s*\*\s*\w+\s*<[=]?\s*\w+/.test(condition);
+  isSqrtPattern(conditionText) {
+    if (!conditionText) return false;
+    const trimmed = conditionText.replace(/\s+/g, '');
+    return /([a-zA-Z_]\w*)\*\1<=?[a-zA-Z_]\w*/.test(trimmed);
+  }
+
+  /**
+   * Check if loop update exhibits a log-log pattern (e.g. i = i * i)
+   * @param {string} updateText
+   * @returns {boolean}
+   */
+  isLogLogPattern(updateText) {
+    if (!updateText) return false;
+    const trimmed = updateText.replace(/\s+/g, '');
+    // matches i = i * i or i *= i for log log progression
+    return /([a-zA-Z_]\w*)=\1\*\1/.test(trimmed) || /([a-zA-Z_]\w*)\*=\1/.test(trimmed);
   }
 
   /**

@@ -74,6 +74,7 @@ export class PatternDetector {
       () => this.detectMatrixTraversal(func),
       () => this.detectLinearSearch(func),
       () => this.detectAccumulation(func),
+      () => this.detectBuiltInAlgorithms(func),
     ];
 
     for (const detect of detectors) {
@@ -95,10 +96,18 @@ export class PatternDetector {
       reasoning.push('No known algorithm patterns detected.');
     }
 
+    // Default to UNKNOWN, but let patterns override it if they represent a known complexity
+    let finalComplexity = BigO.UNKNOWN();
+    for (const match of patterns) {
+      if (match.complexity && match.complexity.orderIndex > finalComplexity.orderIndex) {
+        finalComplexity = match.complexity;
+      }
+    }
+
     return {
       functionName: func.name,
       patterns,
-      complexity: BigO.UNKNOWN(), // Pattern detector labels, it doesn't estimate complexity
+      complexity: finalComplexity,
       confidence: confidence.calculate(),
       reasoning,
     };
@@ -462,6 +471,32 @@ export class PatternDetector {
             reasoning: `Loop updates accumulator variable "${acc.name}".`,
           };
         }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Detect built-in algorithm calls (like sort) and return their specific time complexity.
+   * @param {FunctionNode} func
+   * @returns {object|null}
+   */
+  detectBuiltInAlgorithms(func) {
+    if (!func.body) return null;
+
+    const calls = func.body.findAll(n => n.type === 'call');
+    for (const call of calls) {
+      const name = call.functionName ? call.functionName.toLowerCase() : '';
+      
+      // Check for common O(n log n) sorts
+      if (name === 'sort' || name === 'sorted' || name === 'arrays.sort' || name === 'collections.sort' || name.endsWith('.sort')) {
+        return {
+          pattern: 'built-in-sort',
+          confidence: 'high',
+          complexity: BigO.NLOGN(),
+          reasoning: `Call to built-in sort function (${call.functionName}) contributes O(n log n) time.`,
+        };
       }
     }
 

@@ -64,8 +64,25 @@ export class SpaceAnalyzer {
     // ---- Step 2: Analyze recursion stack depth ----
     const stackComplexity = this.analyzeRecursionStack(func, reasoning, confidence);
 
-    // ---- Step 3: Combined space = max(allocations, stack) ----
-    const spaceComplexity = allocComplexity.add(stackComplexity);
+    // ---- Step 3: Check if allocation happens inside recursion ----
+    // If the function is recursive, allocations multiply by stack depth UNLESS it's a halving reduction
+    let totalAlloc = allocComplexity;
+    if (func.isRecursive && allocComplexity.orderIndex > BigO.O1().orderIndex) {
+      const recursiveCalls = func.recursiveCalls || [];
+      const reduction = this.detectReductionFromCalls(recursiveCalls);
+      
+      if (reduction.type === 'halving') {
+        // Geometric series: n + n/2 + n/4 ... = O(n) max active memory on the stack
+        reasoning.push(`Allocations inside halving recursion: geometric series bounds total allocation space to ${allocComplexity.toString()}`);
+      } else {
+        // Subtractive recursion: n + n + n ... = O(n^2)
+        totalAlloc = allocComplexity.multiply(stackComplexity);
+        reasoning.push(`Allocations happen inside recursive function, space amplified by stack depth to ${totalAlloc.toString()}`);
+      }
+    }
+
+    // ---- Step 4: Combined space = max(total allocations, stack) ----
+    const spaceComplexity = totalAlloc.add(stackComplexity);
 
     if (spaceComplexity.isConstant() && !func.isRecursive) {
       reasoning.push('No significant allocations or recursion - O(1) auxiliary space.');
@@ -99,16 +116,41 @@ export class SpaceAnalyzer {
     if (!func.body) return BigO.O1();
 
     const allocations = collectAllocations(func);
-    if (allocations.length === 0) return BigO.O1();
-
     let maxAlloc = BigO.O1();
 
     for (const alloc of allocations) {
       const allocSpace = this.classifyAllocation(alloc, func, reasoning, confidence);
-      maxAlloc = maxAlloc.add(allocSpace);
+      if (allocSpace.orderIndex > maxAlloc.orderIndex) {
+        maxAlloc = allocSpace;
+      }
+    }
+    
+    // Check for Collections being pushed/added inside loops
+    const accSpace = this.detectCollectionAccumulation(func, reasoning, confidence);
+    if (accSpace.orderIndex > maxAlloc.orderIndex) {
+      maxAlloc = accSpace;
     }
 
     return maxAlloc;
+  }
+
+  detectCollectionAccumulation(func, reasoning, confidence) {
+    if (!func.body) return BigO.O1();
+    
+    const loops = func.body.findAll(n => n.type === 'loop');
+    for (const loop of loops) {
+      const calls = loop.findAll(n => n.type === 'call');
+      for (const call of calls) {
+        const name = call.functionName ? call.functionName.toLowerCase() : '';
+        // Check for push, add, insert, put methods
+        if (/\.(push|push_back|add|put|insert|append)$/.test(name)) {
+          reasoning.push(`Collection accumulation detected: "${call.functionName}" inside loop - O(n) space.`);
+          confidence.addSignal('input_dependent_condition', 'Collection grows inside loop');
+          return BigO.N();
+        }
+      }
+    }
+    return BigO.O1();
   }
 
   /**
@@ -322,12 +364,12 @@ export class SpaceAnalyzer {
         if (divMatch && parseInt(divMatch[1]) > 1) {
           return { type: 'halving', value: parseInt(divMatch[1]) };
         }
+        if (/\b(mid|left|right|lo|hi|low|high)\b/i.test(text)) {
+          return { type: 'halving', value: 2 };
+        }
         if (/\w+\s*-\s*\d+/.test(text)) {
           const subMatch = text.match(/\w+\s*-\s*(\d+)/);
           return { type: 'subtractive', value: parseInt(subMatch[1]) };
-        }
-        if (/^(mid|left|right|lo|hi|low|high)$/i.test(text)) {
-          return { type: 'halving', value: 2 };
         }
       }
     }

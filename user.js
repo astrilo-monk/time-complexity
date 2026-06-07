@@ -71,6 +71,25 @@ function printResult(result) {
   printDivider();
 }
 
+function readCodeBlock() {
+  return new Promise(resolve => {
+    let code = '';
+    const listener = (line) => {
+      if (line.trim().toLowerCase() === 'end') {
+        rl.removeListener('line', listener);
+        rl.pause();
+        resolve(code);
+      } else {
+        code += line + '\n';
+      }
+    };
+    // We use a line listener instead of rl.question to avoid dropping 
+    // rapidly pasted lines from the buffer.
+    rl.resume();
+    rl.on('line', listener);
+  });
+}
+
 async function main() {
   const langArg = process.argv.find(a => a.startsWith('--lang='));
   const supported = getSupportedLanguages();
@@ -98,16 +117,10 @@ async function main() {
     }
 
     // Get code
-    console.log('  Paste your code below (type END on a new line when done):');
+    console.log('  Paste your code below (type END or end on a new line when done):');
     console.log('  ─────────────────────────────────────────────');
 
-    let code = '';
-    let line = '';
-    while (true) {
-      line = await ask('  ');
-      if (line.trim().toLowerCase() === 'end') break;
-      code += line + '\n';
-    }
+    const code = await readCodeBlock();
 
     if (code.trim().length === 0) {
       console.log('  No code provided.');

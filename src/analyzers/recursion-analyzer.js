@@ -208,17 +208,18 @@ export class RecursionAnalyzer {
       // If each call uses a different reduction pattern (e.g. n/2 vs n-1),
       // they are in separate if/else branches and only one runs per invocation.
       const perCallReductions = this.analyzeReductionPerCall(func, recursiveCalls);
-      if (perCallReductions.length === 2 &&
+      const isExclusive = this.areCallsMutuallyExclusive(func.body, recursiveCalls[0], recursiveCalls[1]);
+
+      if (isExclusive || (perCallReductions.length === 2 &&
           perCallReductions[0].type && perCallReductions[1].type &&
-          perCallReductions[0].type !== perCallReductions[1].type) {
+          perCallReductions[0].type !== perCallReductions[1].type)) {
         // Mutually exclusive branches - effective call count = 1
         // Use the dominant (faster-reducing) pattern
         const dominant = perCallReductions.find(r => r.type === 'halving') || perCallReductions[0];
         reasoning.push(
-          `Pattern: branched recursion - 2 calls in exclusive branches ` +
-          `(${perCallReductions.map(r => r.type).join(' vs ')}), only 1 runs per invocation.`
+          `Pattern: branched recursion - 2 calls in exclusive branches, only 1 runs per invocation.`
         );
-        reasoning.push(`Dominant reduction: n / ${dominant.value} per call.`);
+        reasoning.push(`Dominant reduction: n / ${dominant.value || 1} per call.`);
         confidence.addSignal('known_pattern', 'Recognized exclusive-branch recursion');
 
         if (dominant.type === 'halving') {
@@ -279,6 +280,11 @@ export class RecursionAnalyzer {
           return { type: 'halving', value: parseInt(divMatch[1]) };
         }
 
+        // mid, left, right - heuristic for binary search / merge sort
+        if (/\b(mid|left|right|lo|hi|low|high)\b/i.test(text)) {
+          return { type: 'halving', value: 2 };
+        }
+
         // n - 1, n-1
         if (/\w+\s*-\s*1\b/.test(text)) {
           return { type: 'subtractive', value: 1 };
@@ -288,11 +294,6 @@ export class RecursionAnalyzer {
         const subMatch = text.match(/\w+\s*-\s*(\d+)/);
         if (subMatch) {
           return { type: 'subtractive', value: parseInt(subMatch[1]) };
-        }
-
-        // mid, left, right - heuristic for binary search / merge sort
-        if (/^(mid|left|right|lo|hi|low|high)$/i.test(text)) {
-          return { type: 'halving', value: 2 };
         }
       }
     }
@@ -325,6 +326,9 @@ export class RecursionAnalyzer {
         if (divMatch && parseInt(divMatch[1]) > 1) {
           return { type: 'halving', value: parseInt(divMatch[1]) };
         }
+        if (/\b(mid|left|right|lo|hi|low|high)\b/i.test(text)) {
+          return { type: 'halving', value: 2 };
+        }
         if (/\w+\s*-\s*1\b/.test(text)) {
           return { type: 'subtractive', value: 1 };
         }
@@ -332,13 +336,68 @@ export class RecursionAnalyzer {
         if (subMatch) {
           return { type: 'subtractive', value: parseInt(subMatch[1]) };
         }
-        if (/^(mid|left|right|lo|hi|low|high)$/i.test(text)) {
-          return { type: 'halving', value: 2 };
-        }
       }
 
       return { type: null, value: null };
     });
+  }
+
+  /**
+   * Determine if two calls are mutually exclusive by walking the IR tree.
+   * They are mutually exclusive if they are on different sides of a branch,
+   * or if one is after a guaranteed return statement.
+   * @param {IRNode} node
+   * @param {CallNode} call1
+   * @param {CallNode} call2
+   * @returns {boolean}
+   */
+  areCallsMutuallyExclusive(node, call1, call2) {
+    if (!node) return false;
+
+    // Check if both calls are inside this node
+    const containsCall1 = node.findAll(n => n === call1).length > 0;
+    const containsCall2 = node.findAll(n => n === call2).length > 0;
+
+    if (!containsCall1 || !containsCall2) return false;
+
+    // If it's a branch, check if they are in opposite sides
+    if (node.type === 'branch') {
+      const inConsequence1 = node.consequence && node.consequence.findAll(n => n === call1).length > 0;
+      const inConsequence2 = node.consequence && node.consequence.findAll(n => n === call2).length > 0;
+      const inAlternative1 = node.alternative && node.alternative.findAll(n => n === call1).length > 0;
+      const inAlternative2 = node.alternative && node.alternative.findAll(n => n === call2).length > 0;
+
+      if ((inConsequence1 && inAlternative2) || (inAlternative1 && inConsequence2)) {
+        return true;
+      }
+    }
+
+    // Check children
+    for (const child of node.children) {
+      if (this.areCallsMutuallyExclusive(child, call1, call2)) return true;
+    }
+
+    // Heuristic: If it's a block, and the first call is returned, the second won't execute in same branch
+    if (node.type === 'block') {
+      let sawReturnedCall1 = false;
+      let sawReturnedCall2 = false;
+      for (const stmt of node.children) {
+        if (stmt.type === 'return') {
+           if (stmt.findAll(n => n === call1).length > 0) sawReturnedCall1 = true;
+           if (stmt.findAll(n => n === call2).length > 0) sawReturnedCall2 = true;
+        } else if (stmt.type === 'branch') {
+           const branchReturns1 = stmt.findAll(n => n.type === 'return' && n.findAll(c => c === call1).length > 0).length > 0;
+           if (branchReturns1) sawReturnedCall1 = true;
+        }
+
+        // If we previously saw call1 in a return statement, and now we see call2 in a subsequent statement,
+        // then call2 is unreachable or mutually exclusive.
+        if (sawReturnedCall1 && stmt.findAll(n => n === call2).length > 0) return true;
+        if (sawReturnedCall2 && stmt.findAll(n => n === call1).length > 0) return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -382,19 +441,59 @@ export class RecursionAnalyzer {
   estimateWorkPerCall(func, reasoning) {
     if (!func.body) return BigO.O1();
 
-    // Count loops in the function body (not inside recursive calls)
+    // Count loops in the function body
     const loops = func.body.findAll(n => n.type === 'loop');
-
-    if (loops.length === 0) {
-      reasoning.push('Work per call: O(1) - no loops in the function body.');
+    
+    // Check for explicit allocations that cost time (like slicing or list copies)
+    const allocations = func.body.findAll(n => n.type === 'allocation');
+    let maxAllocWork = BigO.O1();
+    let maxAllocReason = null;
+    for (const alloc of allocations) {
+      if (alloc.sizeExpression) {
+        const size = alloc.sizeExpression.trim();
+        if (/^[a-zA-Z_]\w*\s*\*\s*[a-zA-Z_]\w*$/.test(size)) {
+          maxAllocWork = BigO.N2();
+          maxAllocReason = `Work per call: O(n²) - detected O(n²) allocation ("${size}") in the function body.`;
+        } else if (/[a-zA-Z]/.test(size) && !/^\d+$/.test(size)) {
+          if (maxAllocWork.orderIndex < BigO.N().orderIndex) {
+            maxAllocWork = BigO.N();
+            maxAllocReason = `Work per call: O(n) - detected O(n) allocation ("${size}") in the function body.`;
+          }
+        }
+      }
+    }
+    
+    // Heuristic: Check for common O(n) helper calls like merge or partition
+    const calls = func.body.findAll(n => n.type === 'call');
+    const helperCall = calls.find(c => c.functionName && /^(merge|partition)$/i.test(c.functionName));
+    
+    if (loops.length === 0 && !helperCall && maxAllocWork.isConstant()) {
+      reasoning.push('Work per call: O(1) - no loops, allocations, or O(n) helpers in the function body.');
       return BigO.O1();
     }
-
-    // Estimate loop complexity
-    const depth = maxLoopDepth(func);
-    if (depth >= 2) {
-      reasoning.push(`Work per call: O(n²) - nested loops (depth ${depth}) in the function body.`);
-      return BigO.N2();
+    
+    // Max work among loops, helpers, and allocations
+    if (loops.length > 0) {
+      const depth = maxLoopDepth(func);
+      if (depth >= 2) {
+        reasoning.push(`Work per call: O(n²) - nested loops (depth ${depth}) in the function body.`);
+        return BigO.N2();
+      }
+    }
+    
+    if (maxAllocWork.orderIndex === BigO.N2().orderIndex) {
+      reasoning.push(maxAllocReason);
+      return maxAllocWork;
+    }
+    
+    if (helperCall) {
+      reasoning.push(`Work per call: O(n) - detected call to helper function "${helperCall.functionName}".`);
+      return BigO.N();
+    }
+    
+    if (maxAllocWork.orderIndex === BigO.N().orderIndex) {
+      reasoning.push(maxAllocReason);
+      return maxAllocWork;
     }
 
     reasoning.push('Work per call: O(n) - loop found in the function body.');

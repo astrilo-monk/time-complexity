@@ -338,6 +338,29 @@ export class PythonParser extends BaseParser {
       ret.value = this.getNodeText(children[0]);
       // Walk the expression tree to extract embedded calls
       this.extractCallsFromExpression(children[0], ret);
+
+      // Heuristic: If returning a binary operator +, it might be list concatenation (O(n) time/space)
+      if (children[0].type === 'binary_operator') {
+        const operator = this.getField(children[0], 'operator');
+        if (operator && this.getNodeText(operator) === '+') {
+          const leftOperand = this.getNodeText(this.getField(children[0], 'left'));
+          const rightOperand = this.getNodeText(this.getField(children[0], 'right'));
+          // Check if operands look like collections
+          if (/left|right|arr|list|nums|res/i.test(leftOperand) || /left|right|arr|list|nums|res/i.test(rightOperand)) {
+            const alloc = new AllocationNode('array', this.loc(tsNode));
+            alloc.sizeExpression = `${leftOperand}+${rightOperand}`;
+            
+            // Emit a loop to simulate the O(n) copy operations in time complexity
+            const loop = new LoopNode('for-each', this.loc(tsNode));
+            loop.iteratorVar = 'item';
+            loop.iterableVar = `${leftOperand}+${rightOperand}`;
+            
+            // Make them siblings instead of nesting the allocation inside the loop!
+            ret.addChild(alloc);
+            ret.addChild(loop);
+          }
+        }
+      }
     }
     return ret;
   }
@@ -411,11 +434,17 @@ export class PythonParser extends BaseParser {
 
     const call = new CallNode(funcName, this.loc(tsNode));
 
-    // Extract argument texts
+    // Extract argument texts and inline allocations
     const argsNode = this.getField(tsNode, 'arguments');
     if (argsNode) {
       for (const arg of this.getNamedChildren(argsNode)) {
         call.arguments.push(this.getNodeText(arg));
+        
+        // Check for inline allocations like arr[1:] passed as argument
+        const alloc = this.checkForAllocation(arg);
+        if (alloc) {
+          call.addChild(alloc);
+        }
       }
     }
 
@@ -440,8 +469,23 @@ export class PythonParser extends BaseParser {
       if (allocNode) return allocNode;
     }
 
+    // If it's a subscript assignment like d[x] = y, emit a CallNode to simulate collection accumulation
+    if (leftNode && leftNode.type === 'subscript') {
+      const objNode = this.getField(leftNode, 'value');
+      const objName = objNode ? this.getNodeText(objNode) : 'dict';
+      const callNode = new CallNode(`${objName}.put`, this.loc(tsNode));
+      if (rightNode) this.extractCallsFromExpression(rightNode, callNode);
+      return callNode;
+    }
+
     const varNode = new VariableNode(name, 'assignment', this.loc(tsNode));
     varNode.initialValue = rightText;
+    
+    // Extract calls from the right side so recursive calls in assignments are detected
+    if (rightNode) {
+      this.extractCallsFromExpression(rightNode, varNode);
+    }
+
     return varNode;
   }
 
@@ -473,12 +517,9 @@ export class PythonParser extends BaseParser {
       return alloc;
     }
 
-    // List/dict/set comprehensions
+    // List/dict/set comprehensions - handled by processComprehension which returns a loop
     if (tsNode.type === 'list_comprehension' || tsNode.type === 'dictionary_comprehension' || tsNode.type === 'set_comprehension') {
-      const alloc = new AllocationNode('collection', this.loc(tsNode));
-      alloc.dataStructure = tsNode.type.replace('_comprehension', '');
-      if (alloc.dataStructure === 'dictionary') alloc.dataStructure = 'dict';
-      return alloc;
+      return this.processComprehension(tsNode);
     }
 
     // Constructor calls like list(), dict(), set()
@@ -506,6 +547,17 @@ export class PythonParser extends BaseParser {
       }
     }
 
+    // Slicing allocation
+    if (tsNode.type === 'subscript') {
+      const text = this.getNodeText(tsNode);
+      if (text.includes(':')) {
+        const alloc = new AllocationNode('array', this.loc(tsNode));
+        alloc.dataStructure = 'list';
+        alloc.sizeExpression = 'n'; // Slicing generally creates an O(n) array copy
+        return alloc;
+      }
+    }
+
     return null;
   }
 
@@ -523,13 +575,59 @@ export class PythonParser extends BaseParser {
   /**
    * Process a comprehension (list/dict/set comprehension).
    * @param {object} tsNode
-   * @returns {AllocationNode}
+   * @returns {LoopNode}
    */
   processComprehension(tsNode) {
     const alloc = new AllocationNode('collection', this.loc(tsNode));
     alloc.dataStructure = tsNode.type.replace('_comprehension', '');
     if (alloc.dataStructure === 'dictionary') alloc.dataStructure = 'dict';
-    return alloc;
+
+    const forClauses = this.getNamedChildren(tsNode).filter(c => c.type === 'for_in_clause');
+    
+    if (forClauses.length === 0) {
+      const loop = new LoopNode('for-each', this.loc(tsNode));
+      loop.iteratorVar = 'comprehension_item';
+      const block = new BlockNode(this.loc(tsNode));
+      block.addStatement(alloc);
+      loop.setBody(block);
+      return loop;
+    }
+
+    let rootLoop = null;
+    let currentLoop = null;
+
+    for (const forClause of forClauses) {
+      const loop = new LoopNode('for-each', this.loc(forClause));
+      const left = this.getField(forClause, 'left');
+      const right = this.getField(forClause, 'right');
+      loop.iteratorVar = left ? this.getNodeText(left) : 'item';
+      loop.iterableVar = right ? this.getNodeText(right) : 'collection';
+      
+      const block = new BlockNode(this.loc(forClause));
+      loop.setBody(block);
+
+      if (!rootLoop) {
+        rootLoop = loop;
+        currentLoop = loop;
+      } else {
+        currentLoop.body.addStatement(loop);
+        currentLoop = loop;
+      }
+    }
+
+    currentLoop.body.addStatement(alloc);
+    
+    // Process the body of the comprehension to capture nested comprehensions
+    const bodyNode = this.getField(tsNode, 'body');
+    if (bodyNode) {
+      this.extractCallsFromExpression(bodyNode, currentLoop.body);
+      const innerLoop = this.checkForAllocation(bodyNode);
+      if (innerLoop && innerLoop.type === 'loop') {
+        currentLoop.body.addStatement(innerLoop);
+      }
+    }
+
+    return rootLoop;
   }
 
   /**
