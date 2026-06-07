@@ -21,3 +21,16 @@ Thumbs.db
 graphify-out/
 
 # Personal notes
+
+# Test and Demo scripts
+ast_debug.mjs
+debug.js
+demo-output.txt
+out.txt
+out2.txt
+out3.txt
+scratch/
+test-report.md
+test.js
+demo*.js
+user.js
