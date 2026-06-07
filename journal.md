@@ -151,3 +151,47 @@ wrote a complete API reference at `docs/API.md`. covers everything:
 - IR builder utilities
 also updated README with the patterns table, ARCHITECTURE with the detector description, and CHANGELOG with v0.5.0.
 all 8 phases done. 206 tests passing. the analyzer can now take code in 4 languages and tell you time complexity, space complexity, and what kind of algorithm it looks like. not bad for a week's work.
+
+## 07/06/2026
+
+big day. went from "the engine works" to "the engine explains itself properly".
+
+### interactive CLI
+added an interactive mode to `src/index.js`. you can now paste code directly into the terminal and get analysis results without needing a file. type `END` on its own line to finish input. small thing but makes the tool way more usable for quick checks.
+
+### 71-test stress suite
+built a massive `test.js` with 71 hand-written test cases covering everything the engine can handle. each test checks both time AND space complexity. the suite covers:
+- basic loops (O(1) through O(n³))
+- logarithmic patterns (binary search, sqrt loops)
+- recursion (linear, binary, divide-and-conquer, exponential, tail)
+- master theorem cases 1, 2, and 3
+- space patterns (malloc, arrays, recursion stack, loop amplification)
+- multi-language tests (C, C++, Java, Python) - treemap, priority queue, multiset, list comprehensions, dict comprehensions
+- algorithm patterns - DFS, BFS, sliding window, geometric series, harmonic series
+- multi-variable complexity (O(nm), O(nmk))
+- tricky patterns - geometric series O(n), amortized sliding window O(n)
+
+all 71 passing.
+
+### reasoning fixes
+this was the real meat of the day. the engine was getting the right answers but the reasoning output was lying about how it got there. three cases:
+
+1. **sliding window (#70)** - the loop analyzer saw two nested while loops and printed "O(n) x O(n) = O(n^2)" in the reasoning, then the pattern detector silently overrode it to O(n). so the explanation proved O(n^2) and then said "answer: O(n)". fixed this by making the complexity engine clear contradictory reasoning when a pattern override fires. now it prints the actual two-pointer explanation: "pointer j advances bounded by n, pointer i advances bounded by n, total movements <= 2n".
+
+2. **harmonic series (#52)** - the inner loop `for(j=1; j<=n; j+=i)` was being reported as "O(n) iterations". wrong. for a fixed i, it's n/i iterations. the total across all i is the harmonic sum n(1 + 1/2 + ... + 1/n) = O(n log n). added detection in the loop analyzer for when the increment variable matches an outer loop iterator. now correctly prints "step +i -> O(n/i) iterations".
+
+3. **master theorem case 3 (#57)** - had the cases mixed up internally. the reasoning was printing case 1 conditions when it should have been case 3. fixed `applyMasterTheorem()` in the recursion analyzer to properly distinguish:
+   - case 1 (recursion dominates): log_b(a) > d
+   - case 2 (balanced): log_b(a) = d  
+   - case 3 (work dominates): d > log_b(a)
+
+the key insight from today: getting the right answer is only half the job. if the explanation doesn't match the answer, users will (rightfully) not trust the tool.
+
+### architecture fixes
+while building the test suite, found and fixed several deeper issues:
+- space analyzer wasn't accounting for allocations inside recursive functions. an O(n) malloc inside O(n) linear recursion = O(n^2) space, not O(n). added stack depth amplification logic.
+- allocation nodes now contribute to time complexity too. `malloc(n)` or creating a list of size n is O(n) time, not free.
+- complexity algebra had bugs with multi-variable expressions. `O(n) * O(m)` was producing garbage. rewrote the multiply logic to handle variable combinations properly.
+
+### repo cleanup
+moved all test scripts, scratch files, debug outputs, and demo files into `.gitignore`. the tracked repo now only has source code, docs, and tests. merged `feat/user-given-code-2` into `main`.
