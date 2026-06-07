@@ -382,18 +382,27 @@ export class RecursionAnalyzer {
       let sawReturnedCall1 = false;
       let sawReturnedCall2 = false;
       for (const stmt of node.children) {
-        if (stmt.type === 'return') {
-           if (stmt.findAll(n => n === call1).length > 0) sawReturnedCall1 = true;
-           if (stmt.findAll(n => n === call2).length > 0) sawReturnedCall2 = true;
-        } else if (stmt.type === 'branch') {
-           const branchReturns1 = stmt.findAll(n => n.type === 'return' && n.findAll(c => c === call1).length > 0).length > 0;
-           if (branchReturns1) sawReturnedCall1 = true;
+        const hasCall1 = stmt.findAll(n => n === call1).length > 0;
+        const hasCall2 = stmt.findAll(n => n === call2).length > 0;
+        
+        // If they are in the same statement, they execute together (e.g., return fib(n-1) + fib(n-2))
+        // So they are NOT mutually exclusive based on sequential unreachable logic.
+        if (hasCall1 && hasCall2) {
+          return false;
         }
 
         // If we previously saw call1 in a return statement, and now we see call2 in a subsequent statement,
         // then call2 is unreachable or mutually exclusive.
-        if (sawReturnedCall1 && stmt.findAll(n => n === call2).length > 0) return true;
-        if (sawReturnedCall2 && stmt.findAll(n => n === call1).length > 0) return true;
+        if (sawReturnedCall1 && hasCall2) return true;
+        if (sawReturnedCall2 && hasCall1) return true;
+
+        if (stmt.type === 'return') {
+           if (hasCall1) sawReturnedCall1 = true;
+           if (hasCall2) sawReturnedCall2 = true;
+        } else if (stmt.type === 'branch') {
+           const branchReturns1 = stmt.findAll(n => n.type === 'return' && n.findAll(c => c === call1).length > 0).length > 0;
+           if (branchReturns1) sawReturnedCall1 = true;
+        }
       }
     }
 
@@ -542,20 +551,15 @@ export class RecursionAnalyzer {
         return result;
       }
 
-      if (type === 'binary' || callCount === 2) {
-        // T(n) = 2*T(n-1) + O(work) -> O(2^n) (exponential)
+      if (callCount >= 2) {
+        // Multiple subtractive calls → exponential O(c^n)
+        let expStr = '2^n';
+        if (callCount === 3) expStr = '3^n';
+        else if (callCount === 4) expStr = '4^n';
         reasoning.push(
-          `Binary recursion: T(n) = 2*T(n-${reductionValue}) + ${workPerCall.toString()} -> O(2^n).`
+          `Multiple recursion (${callCount} calls, n-${reductionValue}): exponential → O(${expStr.replace('^n', 'ⁿ')}).`
         );
-        return BigO.EXP();
-      }
-
-      if (callCount >= 3) {
-        // Multiple subtractive calls → exponential
-        reasoning.push(
-          `Multiple recursion (${callCount} calls, n-${reductionValue}): exponential → O(2ⁿ).`
-        );
-        return BigO.EXP();
+        return new BigO(expStr);
       }
     }
 
@@ -566,9 +570,11 @@ export class RecursionAnalyzer {
 
       // Work per call complexity as an exponent
       let d = 0;
-      if (workPerCall.complexity === 'n') d = 1;
-      else if (workPerCall.complexity === 'n^2') d = 2;
-      else if (workPerCall.complexity === 'n^3') d = 3;
+      const compStr = workPerCall.complexity;
+      if (compStr === 'n') d = 1;
+      else if (compStr === 'n²' || compStr === 'n^2') d = 2;
+      else if (compStr === 'n³' || compStr === 'n^3') d = 3;
+      else if (compStr.includes('n') && compStr.includes('log')) d = 1; // roughly for master theorem
 
       return this.applyMasterTheorem(a, b, d, workPerCall, reasoning, confidence);
     }
@@ -602,15 +608,15 @@ export class RecursionAnalyzer {
       `  a=${a}, b=${b}, d=${d}, log_b(a)=${logba.toFixed(2)}`
     );
 
-    if (a < Math.pow(b, d)) {
-      // Case 1: work dominates
-      const result = d === 0 ? BigO.O1() : d === 1 ? BigO.N() : d === 2 ? BigO.N2() : BigO.N3();
-      reasoning.push(`  Case 1 (a < b^d): work dominates → ${result.toString()}.`);
-      confidence.addSignal('bounds_statically_known', 'Master Theorem Case 1');
+    if (d > logba + 0.01) {
+      // Case 3: work dominates - O(n^d)
+      const result = workPerCall;
+      reasoning.push(`  Case 3 (d > log_b(a)): work dominates → ${result.toString()}.`);
+      confidence.addSignal('bounds_statically_known', 'Master Theorem Case 3');
       return result;
     }
 
-    if (Math.abs(a - Math.pow(b, d)) < 0.01) {
+    if (Math.abs(d - logba) < 0.01) {
       // Case 2: balanced - O(n^d * log n)
       let result;
       if (d === 0) {
@@ -618,14 +624,14 @@ export class RecursionAnalyzer {
       } else if (d === 1) {
         result = BigO.NLOGN();
       } else {
-        result = BigO.N2(); // simplified for n^2 * log n ≈ n^2
+        result = new BigO('n^2 log n');
       }
-      reasoning.push(`  Case 2 (a = b^d): balanced → ${result.toString()}.`);
+      reasoning.push(`  Case 2 (d = log_b(a)): balanced → ${result.toString()}.`);
       confidence.addSignal('bounds_statically_known', 'Master Theorem Case 2');
       return result;
     }
 
-    // Case 3: recursion dominates - O(n^(log_b(a)))
+    // Case 1: recursion dominates - O(n^(log_b(a)))
     const degree = Math.round(logba);
     let result;
     if (degree <= 0) result = BigO.O1();

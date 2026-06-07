@@ -366,34 +366,43 @@ export class JavaParser extends BaseParser {
     const typeNode = this.getField(tsNode, 'type');
     const typeName = typeNode ? this.getNodeText(typeNode) : null;
 
+    const declaratorNode = this.getField(tsNode, 'declarator');
+    const nameNode = declaratorNode ? this.getField(declaratorNode, 'name') : null;
+    
     // Check for collection types in the type name
     if (typeName) {
       for (const collType of JAVA_COLLECTIONS) {
         if (typeName.includes(collType)) {
           const alloc = new AllocationNode('collection', this.loc(tsNode));
           alloc.dataStructure = collType;
+          alloc.name = nameNode ? this.getNodeText(nameNode) : undefined;
+          alloc.text = this.getNodeText(tsNode);
           return alloc;
         }
       }
     }
 
-    const declaratorNode = this.getField(tsNode, 'declarator');
     if (!declaratorNode) {
       return new ExpressionNode(this.getNodeText(tsNode), this.loc(tsNode));
     }
 
     // variable_declarator has name and value fields
-    const nameNode = this.getField(declaratorNode, 'name');
     const valueNode = this.getField(declaratorNode, 'value');
 
     // Check if value is an object creation (new Type(...))
     if (valueNode && valueNode.type === 'object_creation_expression') {
-      return this.processObjectCreation(valueNode);
+      const obj = this.processObjectCreation(valueNode);
+      obj.name = nameNode ? this.getNodeText(nameNode) : undefined;
+      obj.text = this.getNodeText(tsNode);
+      return obj;
     }
 
     // Check if value is array creation (new int[n])
     if (valueNode && valueNode.type === 'array_creation_expression') {
-      return this.processArrayCreation(valueNode);
+      const arr = this.processArrayCreation(valueNode);
+      arr.name = nameNode ? this.getNodeText(nameNode) : undefined;
+      arr.text = this.getNodeText(tsNode);
+      return arr;
     }
 
     const name = nameNode ? this.getNodeText(nameNode) : '<unknown>';
@@ -439,9 +448,18 @@ export class JavaParser extends BaseParser {
 
     // Try to extract size from dimensions
     const text = this.getNodeText(tsNode);
-    const sizeMatch = text.match(/\[(.+?)\]/);
-    if (sizeMatch) {
-      alloc.sizeExpression = sizeMatch[1];
+    // Extract all bracketed sizes: e.g., [n][m] -> n, m
+    const dimensions = [];
+    const regex = /\[(.*?)\]/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match[1].trim() !== '') {
+        dimensions.push(match[1].trim());
+      }
+    }
+    
+    if (dimensions.length > 0) {
+      alloc.sizeExpression = dimensions.join('*');
     }
 
     return alloc;

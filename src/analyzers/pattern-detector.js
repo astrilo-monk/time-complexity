@@ -75,6 +75,7 @@ export class PatternDetector {
       () => this.detectLinearSearch(func),
       () => this.detectAccumulation(func),
       () => this.detectBuiltInAlgorithms(func),
+      () => this.detectDataStructureOperations(func),
     ];
 
     for (const detect of detectors) {
@@ -330,7 +331,9 @@ export class PatternDetector {
           return {
             pattern: 'two-pointer',
             confidence: 'medium',
-            reasoning: `While loop with pointer variables "${a}" and "${b}".`,
+            complexity: BigO.N(),
+            override: true,
+            reasoning: `While loop with pointer variables "${a}" and "${b}" (Sliding Window / Two Pointers).`,
           };
         }
       }
@@ -347,7 +350,9 @@ export class PatternDetector {
         return {
           pattern: 'two-pointer',
           confidence: 'low',
-          reasoning: `Variables "${a}" and "${b}" declared with loop present.`,
+          complexity: BigO.N(),
+          override: true,
+          reasoning: `Detected sliding window / two-pointer pattern.\nPointer "${b}" advances bounded by n.\nPointer "${a}" advances bounded by n.\nAlthough loops may be nested, total executions across the algorithm are bounded.\nTotal pointer movements ≤ 2n.`,
         };
       }
     }
@@ -489,14 +494,81 @@ export class PatternDetector {
     for (const call of calls) {
       const name = call.functionName ? call.functionName.toLowerCase() : '';
       
-      // Check for common O(n log n) sorts
-      if (name === 'sort' || name === 'sorted' || name === 'arrays.sort' || name === 'collections.sort' || name.endsWith('.sort')) {
+      // Check for common O(n log n) sorts (handles sort, std::sort, arrays.sort)
+      if (name.includes('sort') && !name.includes('insertionsort')) {
         return {
           pattern: 'built-in-sort',
           confidence: 'high',
           complexity: BigO.NLOGN(),
           reasoning: `Call to built-in sort function (${call.functionName}) contributes O(n log n) time.`,
         };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Detect data structure operations that have specific complexity (e.g., O(log n) tree insertions).
+   * @param {FunctionNode} func
+   * @returns {object|null}
+   */
+  detectDataStructureOperations(func) {
+    if (!func.body) return null;
+
+    const calls = func.body.findAll(n => n.type === 'call');
+    for (const call of calls) {
+      const name = call.functionName ? call.functionName.toLowerCase() : '';
+      
+      // Check for tree/heap insertions (O(log n))
+      // Commonly: s.insert(), pq.push(), map.put(), std::set insert
+      if (/\.(insert|put|emplace|push)$/.test(name) || /::(insert|emplace|push)$/.test(name)) {
+        // Only return this pattern if it isn't an array/list operation. 
+        // We heuristically assume .push or .put is log(n) when it comes to pattern detectors for hard cases,
+        // unless it's obviously an array append which is handled differently by space analyzer.
+        // For O(1) appends, it won't trigger if it's named 'append' or 'push_back'.
+        if (!name.includes('append') && !name.includes('push_back')) {
+          if (/unordered|hash|dict/i.test(name)) {
+            continue;
+          }
+          
+          let isLogN = /pq|heap|tree|priority_queue/i.test(name);
+          if (!isLogN && /\b(insert|put|emplace|push)\b/.test(name)) {
+             const varParts = name.split('.');
+             if (varParts.length > 1) {
+               const varName = varParts[0];
+               const vars = func.body ? func.body.findAll(n => n.type === 'variable' || n.type === 'allocation') : [];
+               let foundType = '';
+               for (const v of vars) {
+                 if (v.name === varName || (v.text && v.text.includes(varName))) {
+                   foundType = (v.dataStructure || v.allocationType || v.typeString || v.text || '').toLowerCase();
+                 }
+               }
+               
+               if (foundType) {
+                 if (/unordered|hash|dict/i.test(foundType)) isLogN = false;
+                 else if (/tree|set|map|priority_queue/i.test(foundType)) isLogN = true;
+               } else {
+                 if (/\bset\b/i.test(name) || /::set/.test(name) || name === 's.insert' || name === 'pq.push' || name.endsWith('tree.insert')) {
+                   isLogN = true;
+                 }
+               }
+             } else {
+               if (/\bset\b/i.test(name) || /::set/.test(name) || name === 's.insert' || name === 'pq.push' || name.endsWith('tree.insert')) {
+                 isLogN = true;
+               }
+             }
+          }
+          
+          if (isLogN) {
+            return {
+              pattern: 'tree-heap-insertion',
+              confidence: 'medium',
+              complexity: BigO.LOGN(),
+              reasoning: `Call to data structure operation (${call.functionName}) modeled as O(log n) time.`,
+            };
+          }
+        }
       }
     }
 

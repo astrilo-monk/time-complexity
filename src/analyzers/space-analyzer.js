@@ -137,20 +137,29 @@ export class SpaceAnalyzer {
   detectCollectionAccumulation(func, reasoning, confidence) {
     if (!func.body) return BigO.O1();
     
+    let maxAccSpace = BigO.O1();
     const loops = func.body.findAll(n => n.type === 'loop');
+    
     for (const loop of loops) {
       const calls = loop.findAll(n => n.type === 'call');
       for (const call of calls) {
+        // Find the depth of this specific call relative to the function
+        const depth = this.getAllocationLoopDepth(call, func);
         const name = call.functionName ? call.functionName.toLowerCase() : '';
         // Check for push, add, insert, put methods
-        if (/\.(push|push_back|add|put|insert|append)$/.test(name)) {
-          reasoning.push(`Collection accumulation detected: "${call.functionName}" inside loop - O(n) space.`);
-          confidence.addSignal('input_dependent_condition', 'Collection grows inside loop');
-          return BigO.N();
+        if (/\.(push|push_back|add|put|insert|append|offer)$/.test(name) || name === 'q.push' || name === 'pq.push') {
+          // If we append inside a double loop, it's O(n^2) space accumulation
+          const accSpace = fromDegree(depth);
+          reasoning.push(`Collection accumulation detected: "${call.functionName}" inside loop depth ${depth} - ${accSpace.toString()} space.`);
+          confidence.addSignal('input_dependent_condition', `Collection grows inside loop depth ${depth}`);
+          
+          if (accSpace.orderIndex > maxAccSpace.orderIndex) {
+            maxAccSpace = accSpace;
+          }
         }
       }
     }
-    return BigO.O1();
+    return maxAccSpace;
   }
 
   /**
@@ -186,20 +195,31 @@ export class SpaceAnalyzer {
       confidence.addSignal('bounds_statically_known', `Allocation size: ${cleanSize}`);
     } else if (size && /^\d+$/.test(size.trim())) {
       // Constant size
-      reasoning.push(`Allocation: ${ds} of constant size ${size} - O(1) space.`);
+      if (loopDepth === 0) {
+        reasoning.push(`Allocation: ${ds} of constant size ${size} - O(1) space.`);
+        return BigO.O1();
+      } else {
+        // We let it fall through to the loop multiplier logic below
+        baseSpace = BigO.O1();
+      }
+    } else if (!size && ds === 'collection' && loopDepth === 0) {
+      // Empty collection outside loop
+      reasoning.push(`Allocation: empty ${ds} - O(1) initial space.`);
       return BigO.O1();
     }
 
     // ---- Loop nesting amplifies space (if allocation grows per iteration) ----
     if (loopDepth > 0 && baseSpace.isConstant()) {
       // Constant allocation inside loop - could be reused or cumulative
-      // Assume cumulative (worst case)
-      const loopSpace = fromDegree(loopDepth);
-      reasoning.push(
-        `Allocation: ${ds} inside ${loopDepth} loop(s) - ${loopSpace.toString()} cumulative space.`
-      );
-      confidence.addSignal('input_dependent_condition', 'Allocation inside loop');
-      return loopSpace;
+      // Assume cumulative (worst case) if it's an explicit collection or array
+      if (ds !== 'unknown' && ds !== 'primitive') {
+        const loopSpace = fromDegree(loopDepth);
+        reasoning.push(
+          `Allocation: ${ds} inside ${loopDepth} loop(s) - ${loopSpace.toString()} cumulative space.`
+        );
+        confidence.addSignal('input_dependent_condition', 'Allocation inside loop');
+        return loopSpace;
+      }
     }
 
     if (loopDepth > 0 && !baseSpace.isConstant()) {

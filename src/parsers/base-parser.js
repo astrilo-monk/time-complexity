@@ -148,13 +148,13 @@ export class BaseParser {
     // Try to extract bound variable from condition
     if (conditionNode) {
       const condText = this.getNodeText(conditionNode);
-      // Match patterns like: i < n, i <= n, i > 0, i >= 1
-      const condMatch = condText.match(/(\w+)\s*(<|<=|>|>=|!=)\s*(\w+)/);
+      // Match patterns like: i < n, i <= n*n, i > 0
+      const condMatch = condText.match(/(\w+)\s*(<|<=|>|>=|!=)\s*(.+)/);
       if (condMatch) {
         if (!result.iteratorVar) {
           result.iteratorVar = condMatch[1];
         }
-        result.boundVar = condMatch[3];
+        result.boundVar = condMatch[3].trim();
       }
     }
 

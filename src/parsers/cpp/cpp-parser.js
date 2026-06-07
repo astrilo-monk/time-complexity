@@ -447,28 +447,55 @@ export class CppParser extends BaseParser {
     const typeNode = this.getField(tsNode, 'type');
     const typeName = typeNode ? this.getNodeText(typeNode) : null;
 
+    const declaratorNode = this.getField(tsNode, 'declarator');
+    const nameNode = declaratorNode ? (declaratorNode.type === 'init_declarator' ? this.getField(declaratorNode, 'declarator') : declaratorNode) : null;
+    let varName = nameNode ? this.getNodeText(nameNode) : undefined;
+    // For arrays, the name might be deeper
+    if (declaratorNode && declaratorNode.type === 'array_declarator') {
+       const dName = this.getField(declaratorNode, 'declarator');
+       if (dName) varName = this.getNodeText(dName);
+    }
+
     // Check for STL container type
     if (typeName) {
       for (const containerType of STL_CONTAINERS) {
         if (typeName.includes(containerType)) {
           const alloc = new AllocationNode('collection', this.loc(tsNode));
           alloc.dataStructure = containerType;
+          alloc.name = varName;
+          alloc.text = this.getNodeText(tsNode);
+          const sizeMatch = alloc.text.match(/\b\w+\s*\(\s*([^,)]+)/);
+          if (sizeMatch && !sizeMatch[1].includes('begin')) {
+             alloc.sizeExpression = sizeMatch[1].trim();
+          }
           return alloc;
         }
       }
     }
 
-    const declaratorNode = this.getField(tsNode, 'declarator');
+    // The declaratorNode was already declared above
     if (!declaratorNode) {
       return new ExpressionNode(this.getNodeText(tsNode), this.loc(tsNode));
     }
 
-    // Array declarator
+    // Check for array declarations: int arr[n][m]
     if (declaratorNode.type === 'array_declarator') {
       const alloc = new AllocationNode('array', this.loc(tsNode));
       alloc.dataStructure = 'array';
-      const sizeNode = this.getField(declaratorNode, 'size');
-      if (sizeNode) alloc.sizeExpression = this.getNodeText(sizeNode);
+      let sizes = [];
+      let current = declaratorNode;
+      while (current && current.type === 'array_declarator') {
+        const sizeNode = this.getField(current, 'size');
+        if (sizeNode) {
+          sizes.push(this.getNodeText(sizeNode));
+        }
+        current = this.getField(current, 'declarator');
+      }
+      if (sizes.length > 0) {
+        alloc.sizeExpression = sizes.join(' * ');
+      }
+      alloc.name = varName;
+      alloc.text = this.getNodeText(tsNode);
       return alloc;
     }
 
@@ -478,7 +505,10 @@ export class CppParser extends BaseParser {
       const valueNode = this.getField(declaratorNode, 'value');
 
       if (valueNode && valueNode.type === 'new_expression') {
-        return this.processNewExpression(valueNode);
+        const obj = this.processNewExpression(valueNode);
+        obj.name = varName;
+        obj.text = this.getNodeText(tsNode);
+        return obj;
       }
 
       if (valueNode && valueNode.type === 'call_expression') {
@@ -489,6 +519,8 @@ export class CppParser extends BaseParser {
             const alloc = new AllocationNode('dynamic', this.loc(tsNode));
             alloc.dataStructure = 'heap';
             alloc.sizeExpression = this.getNodeText(valueNode);
+            alloc.name = varName;
+            alloc.text = this.getNodeText(tsNode);
             return alloc;
           }
         }

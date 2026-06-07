@@ -339,6 +339,12 @@ export class PythonParser extends BaseParser {
       // Walk the expression tree to extract embedded calls
       this.extractCallsFromExpression(children[0], ret);
 
+      // Check if the returned value is an allocation or comprehension
+      const returnedAlloc = this.checkForAllocation(children[0]);
+      if (returnedAlloc) {
+        ret.addChild(returnedAlloc);
+      }
+
       // Heuristic: If returning a binary operator +, it might be list concatenation (O(n) time/space)
       if (children[0].type === 'binary_operator') {
         const operator = this.getField(children[0], 'operator');

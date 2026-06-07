@@ -15,10 +15,13 @@ const COMPLEXITIES = [
   'n',
   'n sqrt n',
   'n log n',
+  'n^2 log n',
   'n^2',
   'n^3',
   'n^4',
   '2^n',
+  '3^n',
+  '4^n',
   'n!',
 ];
 
@@ -35,6 +38,8 @@ const DISPLAY_NAMES = {
   'n^3':       'O(n³)',
   'n^4':       'O(n⁴)',
   '2^n':       'O(2ⁿ)',
+  '3^n':       'O(3ⁿ)',
+  '4^n':       'O(4ⁿ)',
   'n!':        'O(n!)',
   'unknown':   'O(?)',
 };
@@ -119,10 +124,15 @@ export class BigO {
     const reverseKey = other._multiplyKey(this);
     if (reverseKey in MULTIPLY_TABLE) return new BigO(MULTIPLY_TABLE[reverseKey]);
 
-    // Multi-variable (n * m -> nm)
-    if (this.orderIndex === COMPLEXITIES.indexOf('n') && other.orderIndex === COMPLEXITIES.indexOf('n') && this.complexity !== other.complexity) {
+    // Multi-variable (n * m -> mn)
+    const isVar = (c) => (/^[a-zA-Z]+$/.test(c.complexity));
+    if (isVar(this) && isVar(other) && this.complexity !== other.complexity) {
       if (/^[a-zA-Z]+$/.test(this.complexity) && /^[a-zA-Z]+$/.test(other.complexity)) {
-        return new BigO(`${this.complexity}${other.complexity}`);
+        if (this.complexity === 'i' || this.complexity === 'j' || other.complexity === 'i' || other.complexity === 'j') {
+          return BigO.N2();
+        }
+        let combinedVars = (this.complexity + other.complexity).split('').sort();
+        return new BigO(combinedVars.join(''));
       }
     }
 
@@ -195,10 +205,10 @@ const MULTIPLY_TABLE = {
   'n^2*n^2':       'n^4',
   'n*log n':       'n log n',
   'log n*n':       'n log n',
-  'n^2*log n':     'n^2',
-  'log n*n^2':     'n^2',
-  'n log n*n':     'n^3',
-  'n*n log n':     'n^3',
+  'n^2*log n':     'n^2 log n',
+  'log n*n^2':     'n^2 log n',
+  'n log n*n':     'n^2 log n',
+  'n*n log n':     'n^2 log n',
   'log n*log n':   'log^2 n',
   'n log n*log n': 'n log n',
   'log n*n log n': 'n log n',

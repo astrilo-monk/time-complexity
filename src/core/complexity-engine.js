@@ -76,6 +76,7 @@ export class ComplexityEngine {
         const result = analyzer.analyze(ir, context);
         if (result) analyzerResults.push(result);
       } catch (err) {
+        console.error(`Analyzer ${analyzer.name} threw error:`, err);
         analyzerResults.push({
           analyzerName: analyzer.name || 'unknown',
           error: err.message,
@@ -157,9 +158,23 @@ export class ComplexityEngine {
       .map(r => r.complexity)
       .filter(c => c && !c.isUnknown());
 
-    const timeComplexity = complexities.length > 0
+    let timeComplexity = complexities.length > 0
       ? max(complexities)
       : BigO.O1();
+
+    // Collect all reasoning steps
+    let reasoning = functionResults.flatMap(r => r.reasoning || []);
+    
+    // Check if pattern detector returned a high confidence override (e.g. sliding window)
+    const patternResult = functionResults.find(r => r.patterns && r.patterns.some(p => p.override));
+    if (patternResult && patternResult.complexity && !patternResult.complexity.isUnknown()) {
+      timeComplexity = patternResult.complexity;
+      // Filter out contradictory reasoning from other analyzers
+      reasoning = patternResult.reasoning || [];
+      const overrideReasoning = patternResult.patterns.find(p => p.override).reasoning;
+      reasoning.push(`Time complexity overridden to O(${timeComplexity.complexity}) by pattern detector.`);
+      reasoning.push(`Reasoning: ${overrideReasoning}`);
+    }
 
     // Merge confidence from all analyzers
     const confidences = functionResults
@@ -168,12 +183,6 @@ export class ComplexityEngine {
     const avgConfidence = confidences.length > 0
       ? confidences.reduce((sum, c) => sum + c.score, 0) / confidences.length
       : 0.5;
-
-    // Collect all reasoning steps
-    const reasoning = functionResults
-      .flatMap(r => r.reasoning || []);
-
-    // Space complexity from space analyzer
     const spaceResults = functionResults.filter(r => r.spaceComplexity);
     const spaceComplexity = spaceResults.length > 0
       ? max(spaceResults.map(r => r.spaceComplexity))

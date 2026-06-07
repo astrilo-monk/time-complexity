@@ -368,13 +368,21 @@ export class CParser extends BaseParser {
       return new ExpressionNode(this.getNodeText(tsNode), this.loc(tsNode));
     }
 
-    // Check for array declarations: int arr[n]
+    // Check for array declarations: int arr[n][m]
     if (declaratorNode.type === 'array_declarator') {
       const alloc = new AllocationNode('array', this.loc(tsNode));
       alloc.dataStructure = 'array';
-      const sizeNode = this.getField(declaratorNode, 'size');
-      if (sizeNode) {
-        alloc.sizeExpression = this.getNodeText(sizeNode);
+      let sizes = [];
+      let current = declaratorNode;
+      while (current && current.type === 'array_declarator') {
+        const sizeNode = this.getField(current, 'size');
+        if (sizeNode) {
+          sizes.push(this.getNodeText(sizeNode));
+        }
+        current = this.getField(current, 'declarator');
+      }
+      if (sizes.length > 0) {
+        alloc.sizeExpression = sizes.join(' * ');
       }
       return alloc;
     }
@@ -493,6 +501,21 @@ export class CParser extends BaseParser {
   processAssignmentExpression(tsNode) {
     const leftNode = this.getField(tsNode, 'left');
     const rightNode = this.getField(tsNode, 'right');
+
+    if (rightNode && rightNode.type === 'call_expression') {
+      const funcNode = this.getField(rightNode, 'function');
+      if (funcNode) {
+        const funcName = this.getNodeText(funcNode);
+        if (['malloc', 'calloc', 'realloc'].includes(funcName)) {
+          const alloc = new AllocationNode('dynamic', this.loc(tsNode));
+          alloc.dataStructure = 'heap';
+          const argsNode = this.getField(rightNode, 'arguments');
+          if (argsNode) alloc.sizeExpression = this.getNodeText(argsNode);
+          alloc.name = leftNode ? this.getNodeText(leftNode) : '';
+          return alloc;
+        }
+      }
+    }
 
     const name = leftNode ? this.getNodeText(leftNode) : '<unknown>';
     const varNode = new VariableNode(name, 'assignment', this.loc(tsNode));
