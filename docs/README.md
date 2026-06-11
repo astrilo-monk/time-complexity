@@ -4,7 +4,7 @@ a zero-LLM static analysis engine that figures out the time and space complexity
 
 ## the backstory
 
-this was built to replace a feature in Code Tracer[https://code-tracer-liart.vercel.app/] that used Groq's LLaMA 70B to estimate Big-O. prompting an LLM worked sometimes but it would hallucinate and contradict its own reasoning. so i built something that actually analyzes the code structure instead of guessing.
+this was built to replace a feature in (Code Tracer)[https://code-tracer-liart.vercel.app/] that used Groq's LLaMA 70B to estimate Big-O. prompting an LLM worked sometimes but it would hallucinate and contradict its own reasoning. so i built something that actually analyzes the code structure instead of guessing.
 
 ## quick start
 
